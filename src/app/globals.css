@@ -23,4 +23,10 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  /* Prevents the pull-to-refresh and the "bounce" effect on mobile */
+  overscroll-behavior-y: contain;
+
+  /* Optional: prevents users from accidentally highlighting text 
+     while scrolling, which feels more "App-like" */
+  user-select: none;
 }
