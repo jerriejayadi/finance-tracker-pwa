@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Finance Tracker PWA (Fintrack)
+
+A Progressive Web App for tracking your personal income and expenses. Built to make financial tracking simple, accessible, and encouraging.
+
+## Vision
+
+We believe tracking your finances shouldn't be complicated or stressful. Finance Tracker PWA is designed to encourage healthy financial habits by making it easy to log transactions, visualize spending patterns, and stay on top of your financial goals.
+
+## Features
+
+- **Track Income & Expenses** — Log transactions quickly and categorize them
+- **Offline Support** — Works offline as a PWA; your data syncs when you're back online
+- **Dashboard Overview** — See your financial snapshot at a glance
+- **Goal Progress** — Set and track savings goals
+- **Secure Authentication** — Your data is protected with Supabase auth
+
+## Tech Stack
+
+- **Next.js 16** (App Router)
+- **Supabase** — Backend, authentication, and database
+- **TanStack React Query** — Data fetching and caching
+- **PWA** — Service worker for offline support
+- **Tailwind CSS** — Styling
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to start tracking your finances.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Authentication: Sign In and Sign Out
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Sign In** — Go to `/login`, enter your email and password, then click **Sign In**.
+- **Sign Up** — Go to `/register` and complete the 3-step flow: Account (email + password), Verify (enter the 6-digit OTP sent to your email; resend available), and Profile (display name, phone number, preferred currency).
+- **Sign Out** — Open **Profile** from the bottom navigation and click **Sign Out** in **Account Management**.
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Supabase Documentation](https://supabase.com/docs)

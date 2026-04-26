@@ -37,6 +37,10 @@ export default function ProfilePage() {
     setMounted(true);
   }, []);
 
+  React.useEffect(()=>{
+    console.log("Profile data:", profile);
+  },[profile])
+
   const handleSignOut = () => {
     signOutMutation.mutate(undefined);
   };
@@ -57,7 +61,7 @@ export default function ProfilePage() {
         
         <div className="text-center">
           <h1 className="text-2xl font-extrabold text-text-navy dark:text-white leading-tight">
-            {profile?.full_name}
+            {profile?.display_name}
           </h1>
           <p className="text-sm font-bold text-text-muted mt-1">{profile?.email}</p>
         </div>

@@ -1,6 +1,9 @@
+// TODO: Review InstallButton usage - appears unused
+import InstallButton from "@/components/login/install-button";
 import { LoginForm } from "./login-form";
 import { Wallet } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Sign In — Fintrack",
@@ -65,12 +68,12 @@ export default function LoginPage() {
         {/* Sign up link */}
         <p className="text-center text-sm text-text-muted font-semibold mt-8 mb-6">
           Don&apos;t have an account?{" "}
-          <a
-            href="#"
+          <Link
+            href="/register"
             className="font-bold text-primary hover:text-primary/80 transition-colors"
           >
             Sign up
-          </a>
+          </Link>
         </p>
       </div>
     </div>

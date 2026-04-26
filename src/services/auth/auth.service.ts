@@ -1,5 +1,10 @@
 import { supabase } from "@/lib/supabase/client";
-import { SignInWithPasswordCredentials } from "@supabase/supabase-js";
+import {
+  SignInWithPasswordCredentials,
+  SignUpWithPasswordCredentials,
+  VerifyOtpParams,
+  ResendParams,
+} from "@supabase/supabase-js";
 
 export const authService = {
   login: async (credentials: SignInWithPasswordCredentials) => {
@@ -12,7 +17,61 @@ export const authService = {
 
     return data;
   },
-  logout: async() => {
+  register: async (credentials: SignUpWithPasswordCredentials) => {
+    const { data, error } = await supabase.auth.signUp(credentials);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
+  },
+  verifyOtp: async (params: VerifyOtpParams) => {
+    const { data, error } = await supabase.auth.verifyOtp(params);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
+  },
+  resendOtp: async (params: ResendParams) => {
+    const { data, error } = await supabase.auth.resend(params);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
+  },
+  setupProfile: async (profileData: {
+    display_name: string;
+    phone: string;
+    currency_preference: string;
+  }) => {
+    const { data: userResponse, error: userError } =
+      await supabase.auth.getUser();
+
+    if (userError || !userResponse.user) {
+      throw new Error("Unable to identify logged-in user to setup profile.");
+    }
+
+    const { error: profileError } = await supabase.from("profiles").upsert([
+      {
+        id: userResponse.user.id,
+        display_name: profileData.display_name,
+        phone: profileData.phone,
+        currency_preference: profileData.currency_preference,
+      },
+    ]);
+
+    if (profileError) {
+      throw new Error(profileError.message);
+    }
+
+    return true;
+  },
+  logout: async () => {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -21,5 +80,13 @@ export const authService = {
 
     return true;
   },
-};
+  getProfile: async () => {
+    const { data, error } = await supabase.auth.getUser();
 
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data;
+  },
+};

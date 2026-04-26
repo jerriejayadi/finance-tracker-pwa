@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
-import { QueryProvider } from "@/components/providers/query-provider";
+import { QueryProvider } from "@/providers/query-provider";
 import "./globals.css";
 
 import { PwaElements } from "@/components/pwa/pwa-elements";

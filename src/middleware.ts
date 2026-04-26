@@ -2,7 +2,10 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 import { createServerClient } from "@supabase/ssr";
 
+const AUTH_PAGES = ["/login", "/onboarding", "/register"];
+
 export async function middleware(request: NextRequest) {
+
   const { nextUrl } = request;
   
   // 1. Update session (manages cookies for Supabase)
@@ -23,7 +26,7 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   // Redirect logic
-  const isAuthPage = nextUrl.pathname === "/login";
+  const isAuthPage = AUTH_PAGES.includes(nextUrl.pathname);
   const isOnboardingPage = nextUrl.pathname === "/onboarding";
 
   if (!user && !isAuthPage && !isOnboardingPage) {
