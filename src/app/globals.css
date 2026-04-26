@@ -1,32 +1,88 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-primary: #05bd89;
+  --color-background-light: #f5f8f7;
+  --color-background-dark: #0f231d;
+  --color-accent-coral: #FF6B6B;
+  --color-accent-yellow: #FFD166;
+  --color-text-navy: #2D3142;
+  --color-text-muted: #9094A6;
+  
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  
+  --radius-DEFAULT: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+  --radius-full: 9999px;
+
+  --shadow-soft: 0 8px 24px rgba(45, 49, 66, 0.05);
+  --shadow-colored: 0 8px 24px rgba(5, 189, 137, 0.25);
+  --shadow-aura: 0 0 40px rgba(5, 189, 137, 0.15);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --background: #f5f8f7; /* background-light */
+  --foreground: #2D3142; /* text-navy */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0f231d; /* background-dark */
+    --foreground: #f5f8f7; /* text colors usually get lighter in dark mode, but let's stick to the reverse */
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  /* Prevents the pull-to-refresh and the "bounce" effect on mobile */
+  font-family: var(--font-sans);
   overscroll-behavior-y: contain;
-
-  /* Optional: prevents users from accidentally highlighting text 
-     while scrolling, which feels more "App-like" */
   user-select: none;
+}
+
+/* Onboarding animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.4s ease-out both;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Safe area for PWA bottom nav */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
