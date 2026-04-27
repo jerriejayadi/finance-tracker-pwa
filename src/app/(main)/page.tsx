@@ -1,120 +1,266 @@
-import { Plus, PieChart, ArrowUpRight, ChevronRight } from "lucide-react";
+"use client";
+
+import * as React from "react";
+import {
+  ChevronRight,
+  ChevronDown,
+  Plus,
+  ArrowDownLeft,
+  ArrowUpRight,
+  ArrowLeftRight,
+} from "lucide-react";
 import { TransactionItem } from "@/components/home/transaction-item";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Chip } from "@/components/ui/chip";
+import { useAddTransaction } from "./layout";
+
+const SEED_GROUPS = [
+  {
+    day: "Today · Apr 27",
+    total: -34.14,
+    items: [
+      {
+        id: 1,
+        merchant: "Ramen Tatsu",
+        category: "Food",
+        icon: "🍜",
+        amount: 18.4,
+        type: "expense" as const,
+        time: "12:48",
+        recurring: false,
+      },
+      {
+        id: 2,
+        merchant: "Spotify",
+        category: "Subscriptions",
+        icon: "♪",
+        amount: 9.99,
+        type: "expense" as const,
+        time: "09:12",
+        recurring: true,
+      },
+      {
+        id: 3,
+        merchant: "Blue Bottle",
+        category: "Coffee",
+        icon: "☕",
+        amount: 5.75,
+        type: "expense" as const,
+        time: "08:19",
+        recurring: false,
+      },
+    ],
+  },
+  {
+    day: "Yesterday · Apr 26",
+    total: 3137.86,
+    items: [
+      {
+        id: 4,
+        merchant: "Payroll · Acme Co.",
+        category: "Income",
+        icon: "$",
+        amount: 3200.0,
+        type: "income" as const,
+        time: "08:00",
+        recurring: false,
+      },
+      {
+        id: 5,
+        merchant: "Trader Joe's",
+        category: "Groceries",
+        icon: "🛒",
+        amount: 62.14,
+        type: "expense" as const,
+        time: "18:31",
+        recurring: false,
+      },
+    ],
+  },
+  {
+    day: "Apr 25",
+    total: -96.45,
+    items: [
+      {
+        id: 6,
+        merchant: "PG&E Electricity",
+        category: "Utilities",
+        icon: "⌁",
+        amount: 82.15,
+        type: "expense" as const,
+        time: "07:02",
+        recurring: true,
+      },
+      {
+        id: 7,
+        merchant: "Uber",
+        category: "Transport",
+        icon: "🚗",
+        amount: 14.3,
+        type: "expense" as const,
+        time: "22:04",
+        recurring: false,
+      },
+    ],
+  },
+];
+
+const CHIPS = [
+  { id: "All", count: 247 },
+  { id: "Food", count: 38 },
+  { id: "Transport", count: 12 },
+  { id: "Income", count: 4 },
+  { id: "Bills", count: 9 },
+  { id: "Fun", count: 16 },
+];
+
+const PERIOD_OPTIONS = [
+  { value: "Day", label: "Day" },
+  { value: "Week", label: "Week" },
+  { value: "Month", label: "Month" },
+  { value: "Year", label: "Year" },
+];
 
 export default function DashboardPage() {
+  const openAddTx = useAddTransaction();
+  const [period, setPeriod] = React.useState("Month");
+  const [chip, setChip] = React.useState("All");
+
   return (
-    <>
-      <main className="px-6 flex flex-col gap-8">
-        {/* Safe to Spend Section */}
-        <section className="bg-primary p-6 rounded-[2.5rem] text-white relative overflow-hidden shadow-colored animate-fade-in-up">
-          <div className="relative z-10">
-            <p className="text-white/80 font-bold text-sm tracking-wide mb-1">
-              SAFE TO SPEND
-            </p>
-            <h2 className="text-4xl font-black mb-6">$2,450.80</h2>
+    <main className="flex flex-col gap-4">
+      {/* Balance hero */}
+      <section className="mx-4 p-[22px_22px_20px] bg-bg-1 border border-line rounded-lg relative overflow-hidden">
+        {/* Brand glow */}
+        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-brand-soft blur-[40px] pointer-events-none" />
 
-            <div className="flex items-center justify-between bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
-              <div className="flex flex-col">
-                <p className="text-[10px] font-bold text-white/70 uppercase">
-                  Daily Budget
-                </p>
-                <p className="text-lg font-extrabold">$80.00</p>
-              </div>
-              <div className="w-px h-8 bg-white/20" />
-              <div className="flex flex-col text-right">
-                <p className="text-[10px] font-bold text-white/70 uppercase">
-                  Left for Today
-                </p>
-                <p className="text-lg font-extrabold text-accent-yellow">
-                  $32.50
-                </p>
-              </div>
-            </div>
+        <div className="flex items-center justify-between relative z-[1]">
+          <div className="text-[11px] uppercase tracking-[0.06em] text-fg-2 font-medium">
+            Total balance
           </div>
-          {/* Decorative auras */}
-          <div className="absolute top-[-20%] right-[-10%] w-48 h-48 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-[-20%] left-[-10%] w-32 h-32 bg-accent-yellow/20 rounded-full blur-2xl" />
-        </section>
+          <button className="inline-flex items-center gap-1 h-6 px-2.5 rounded-full bg-bg-2 border border-line text-[11px] text-fg-1 font-mono cursor-pointer">
+            April · 2026 <ChevronDown size={12} strokeWidth={1.75} />
+          </button>
+        </div>
 
-        {/* Categories / Highlights */}
-        <section className="grid grid-cols-2 gap-4">
-          <div className="bg-white dark:bg-white/5 p-4 rounded-3xl shadow-soft border border-black/5 dark:border-white/5 flex flex-col gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-accent-yellow/10 flex items-center justify-center text-accent-yellow">
-              <PieChart size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-text-muted">Total Budget</p>
-              <p className="text-lg font-extrabold text-text-navy dark:text-white">
-                $4,200
-              </p>
-            </div>
-            <div className="w-full bg-text-muted/10 h-1.5 rounded-full overflow-hidden">
-              <div className="bg-accent-yellow h-full rounded-full w-[65%]" />
-            </div>
-          </div>
-          <div className="bg-white dark:bg-white/5 p-4 rounded-3xl shadow-soft border border-black/5 dark:border-white/5 flex flex-col gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-              <ArrowUpRight size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-text-muted">Spent</p>
-              <p className="text-lg font-extrabold text-text-navy dark:text-white">
-                $2,730
-              </p>
-            </div>
-            <div className="w-full bg-text-muted/10 h-1.5 rounded-full overflow-hidden">
-              <div className="bg-primary h-full rounded-full w-[80%]" />
-            </div>
-          </div>
-        </section>
+        <div className="font-mono tabular-nums text-[42px] leading-[1.05] tracking-[-0.025em] font-medium mt-3 relative z-[1]">
+          $4,283<span className="text-fg-2 text-[28px]">.19</span>
+        </div>
 
-        {/* Recent Transactions */}
-        <section className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-extrabold text-text-navy dark:text-white">
-              Recent Activity
-            </h3>
-            <button className="text-sm font-bold text-primary flex items-center gap-1">
-              See All <ChevronRight size={16} />
-            </button>
-          </div>
-          <div className="flex flex-col gap-3">
-            <TransactionItem
-              title="Starbucks Coffee"
-              category="coffee"
-              amount={12.5}
-              date="Today, 09:41 AM"
-              type="expense"
-            />
-            <TransactionItem
-              title="Weekly Groceries"
-              category="groceries"
-              amount={84.2}
-              date="Yesterday, 06:22 PM"
-              type="expense"
-            />
-            <TransactionItem
-              title="Salary Deposit"
-              category="income"
-              amount={3200.0}
-              date="28 Mar, 2024"
-              type="income"
-            />
-            <TransactionItem
-              title="Shell Gas Station"
-              category="gas"
-              amount={45.0}
-              date="27 Mar, 2024"
-              type="expense"
-            />
-          </div>
-        </section>
-      </main>
+        <div className="flex items-center gap-2 mt-1.5 relative z-[1]">
+          <span className="inline-flex items-center gap-1 font-mono text-[11px] px-2 py-[3px] rounded-full bg-pos-soft text-pos">
+            ▲ 12.4%
+          </span>
+          <span className="text-[11px] text-fg-2">
+            vs March · + $471.20
+          </span>
+        </div>
 
-      {/* Floating Action Button */}
-      <button className="fixed right-6 bottom-28 w-16 h-16 bg-primary rounded-full shadow-colored flex items-center justify-center text-white active:scale-95 transition-transform z-20">
-        <Plus size={32} strokeWidth={3} />
-      </button>
-    </>
+        {/* Action buttons */}
+        <div className="grid grid-cols-3 gap-2 mt-[18px] relative z-[1]">
+          <button onClick={() => openAddTx("expense")} className="h-11 rounded-sm bg-brand text-brand-ink text-[13px] font-medium border border-transparent flex items-center justify-center gap-1.5 cursor-pointer hover:bg-brand-hi transition-colors">
+            <Plus size={16} strokeWidth={1.75} /> Expense
+          </button>
+          <button onClick={() => openAddTx("income")} className="h-11 rounded-sm bg-bg-2 text-fg-0 text-[13px] font-medium border border-line flex items-center justify-center gap-1.5 cursor-pointer hover:bg-bg-3 transition-colors">
+            <ArrowDownLeft size={16} strokeWidth={1.75} /> Income
+          </button>
+          <button onClick={() => openAddTx("transfer")} className="h-11 rounded-sm bg-bg-2 text-fg-0 text-[13px] font-medium border border-line flex items-center justify-center gap-1.5 cursor-pointer hover:bg-bg-3 transition-colors">
+            <ArrowLeftRight size={16} strokeWidth={1.75} /> Transfer
+          </button>
+        </div>
+      </section>
+
+      {/* In/Out strip */}
+      <section className="mx-4 grid grid-cols-[1fr_1px_1fr] bg-bg-1 border border-line rounded-md py-3.5 items-center">
+        <div className="flex items-center gap-3 px-3.5">
+          <div className="w-8 h-8 rounded-lg bg-pos-soft text-pos flex items-center justify-center flex-shrink-0">
+            <ArrowDownLeft size={16} strokeWidth={1.75} />
+          </div>
+          <div>
+            <div className="text-[11px] text-fg-2 uppercase tracking-[0.04em]">
+              Income
+            </div>
+            <div className="font-mono tabular-nums text-[15px] font-medium mt-0.5">
+              + $3,200.00
+            </div>
+          </div>
+        </div>
+        <div className="w-px h-7 bg-line" />
+        <div className="flex items-center gap-3 px-3.5">
+          <div className="w-8 h-8 rounded-lg bg-neg-soft text-neg flex items-center justify-center flex-shrink-0">
+            <ArrowUpRight size={16} strokeWidth={1.75} />
+          </div>
+          <div>
+            <div className="text-[11px] text-fg-2 uppercase tracking-[0.04em]">
+              Expenses
+            </div>
+            <div className="font-mono tabular-nums text-[15px] font-medium mt-0.5">
+              − $1,876.81
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Section title */}
+      <div className="flex items-center justify-between px-5 mt-[18px]">
+        <h2 className="text-[11px] font-semibold text-fg-2 uppercase tracking-[0.06em]">
+          Recent activity
+        </h2>
+        <button className="text-[12px] text-fg-1 flex items-center gap-0.5 cursor-pointer hover:text-fg-0">
+          See all <ChevronRight size={12} strokeWidth={1.75} />
+        </button>
+      </div>
+
+      {/* Period picker */}
+      <div className="px-5">
+        <SegmentedControl
+          value={period}
+          onValueChange={setPeriod}
+          options={PERIOD_OPTIONS}
+        />
+      </div>
+
+      {/* Category chips */}
+      <div className="flex gap-1.5 overflow-x-auto px-5 hide-scrollbar pb-1">
+        {CHIPS.map((c) => (
+          <Chip
+            key={c.id}
+            active={chip === c.id}
+            count={c.count}
+            onClick={() => setChip(c.id)}
+          >
+            {c.id}
+          </Chip>
+        ))}
+      </div>
+
+      {/* Transaction list */}
+      <div className="px-4 flex flex-col gap-0.5">
+        {SEED_GROUPS.map((g) => (
+          <React.Fragment key={g.day}>
+            <div className="text-[11px] text-fg-2 uppercase tracking-[0.04em] px-1 pt-3.5 pb-1.5 flex justify-between items-baseline">
+              <span>{g.day}</span>
+              <span className="font-mono text-fg-1 normal-case tracking-normal">
+                {g.total >= 0 ? "+ " : "− "}$
+                {Math.abs(g.total).toFixed(2)}
+              </span>
+            </div>
+            {g.items.map((tx) => (
+              <TransactionItem
+                key={tx.id}
+                title={tx.merchant}
+                category={tx.category}
+                amount={tx.amount}
+                time={tx.time}
+                type={tx.type}
+                icon={tx.icon}
+                recurring={tx.recurring}
+              />
+            ))}
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div className="h-5" />
+    </main>
   );
 }

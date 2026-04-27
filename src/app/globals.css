@@ -1,88 +1,207 @@
 @import "tailwindcss";
 
+/* =========================================================================
+   FinTrack Design System — Dark-mode-first
+   Monochrome neutrals + 2 semantic accents (pos/neg) + 1 warning accent.
+   ========================================================================= */
+
 @theme {
-  --color-primary: #05bd89;
-  --color-background-light: #f5f8f7;
-  --color-background-dark: #0f231d;
-  --color-accent-coral: #FF6B6B;
-  --color-accent-yellow: #FFD166;
-  --color-text-navy: #2D3142;
-  --color-text-muted: #9094A6;
-  
-  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
-  
-  --radius-DEFAULT: 1rem;
-  --radius-lg: 1.5rem;
-  --radius-xl: 2rem;
-  --radius-full: 9999px;
+  /* ---- Neutral surfaces ---- */
+  --color-bg-0: var(--bg-0);
+  --color-bg-1: var(--bg-1);
+  --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
 
-  --shadow-soft: 0 8px 24px rgba(45, 49, 66, 0.05);
-  --shadow-colored: 0 8px 24px rgba(5, 189, 137, 0.25);
-  --shadow-aura: 0 0 40px rgba(5, 189, 137, 0.15);
+  /* ---- Text / foreground ---- */
+  --color-fg-0: var(--fg-0);
+  --color-fg-1: var(--fg-1);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+
+  /* ---- Borders ---- */
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+
+  /* ---- Brand ---- */
+  --color-brand: var(--brand);
+  --color-brand-hi: var(--brand-hi);
+  --color-brand-lo: var(--brand-lo);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-ink: var(--brand-ink);
+
+  /* ---- Semantic accents ---- */
+  --color-pos: var(--pos);
+  --color-pos-soft: var(--pos-soft);
+  --color-neg: var(--neg);
+  --color-neg-soft: var(--neg-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+
+  /* ---- Focus ---- */
+  --color-focus: var(--focus);
+
+  /* ---- Fonts ---- */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* ---- Type scale ---- */
+  --font-size-display: 44px;
+  --font-size-h1: 32px;
+  --font-size-h2: 22px;
+  --font-size-h3: 17px;
+  --font-size-body: 15px;
+  --font-size-small: 13px;
+  --font-size-caption: 11px;
+  --font-size-num-xl: 40px;
+  --font-size-num-lg: 22px;
+  --font-size-num-md: 15px;
+
+  /* ---- Spacing (4pt grid) ---- */
+  --spacing-sp-1: 4px;
+  --spacing-sp-2: 8px;
+  --spacing-sp-3: 12px;
+  --spacing-sp-4: 16px;
+  --spacing-sp-5: 20px;
+  --spacing-sp-6: 24px;
+  --spacing-sp-8: 32px;
+  --spacing-sp-10: 40px;
+  --spacing-sp-12: 48px;
+  --spacing-sp-16: 64px;
+
+  /* ---- Radii ---- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+
+  /* ---- Shadows (theme-aware via CSS vars) ---- */
+  --shadow-sm: var(--shadow-sm-val);
+  --shadow-md: var(--shadow-md-val);
+  --shadow-lg: var(--shadow-lg-val);
+
+  /* ---- Motion ---- */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-dur-fast: 120ms;
+  --animate-dur-base: 180ms;
+  --animate-dur-slow: 280ms;
 }
 
+/* ---- Dark mode (default) ---- */
 :root {
-  --background: #f5f8f7; /* background-light */
-  --foreground: #2D3142; /* text-navy */
+  --bg-0: oklch(14% 0 0);
+  --bg-1: oklch(18% 0 0);
+  --bg-2: oklch(22% 0 0);
+  --bg-3: oklch(26% 0 0);
+  --line: oklch(30% 0 0 / 0.9);
+  --line-soft: oklch(30% 0 0 / 0.5);
+
+  --fg-0: oklch(98% 0 0);
+  --fg-1: oklch(78% 0 0);
+  --fg-2: oklch(58% 0 0);
+  --fg-3: oklch(42% 0 0);
+
+  --brand: oklch(82% 0.14 78);
+  --brand-hi: oklch(88% 0.13 80);
+  --brand-lo: oklch(72% 0.15 72);
+  --brand-soft: oklch(82% 0.14 78 / 0.14);
+  --brand-ink: oklch(20% 0.04 78);
+
+  --pos: oklch(74% 0.14 152);
+  --pos-soft: oklch(74% 0.14 152 / 0.14);
+  --neg: oklch(66% 0.17 22);
+  --neg-soft: oklch(66% 0.17 22 / 0.14);
+  --warn: oklch(78% 0.16 50);
+  --warn-soft: oklch(78% 0.16 50 / 0.14);
+
+  --focus: var(--brand);
+
+  /* Dark mode: elevation = lighter surface + hairline, no shadow */
+  --shadow-sm-val: 0 0 0 1px var(--line);
+  --shadow-md-val: 0 0 0 1px var(--line);
+  --shadow-lg-val: 0 0 0 1px var(--line);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f231d; /* background-dark */
-    --foreground: #f5f8f7; /* text colors usually get lighter in dark mode, but let's stick to the reverse */
-  }
+/* ---- Light mode ---- */
+.light,
+[data-theme="light"] {
+  --bg-0: oklch(99% 0 0);
+  --bg-1: oklch(100% 0 0);
+  --bg-2: oklch(97% 0 0);
+  --bg-3: oklch(94% 0 0);
+  --line: oklch(88% 0 0);
+  --line-soft: oklch(92% 0 0);
+
+  --fg-0: oklch(16% 0 0);
+  --fg-1: oklch(36% 0 0);
+  --fg-2: oklch(52% 0 0);
+  --fg-3: oklch(68% 0 0);
+
+  --brand: oklch(72% 0.16 72);
+  --brand-hi: oklch(78% 0.15 74);
+  --brand-lo: oklch(62% 0.17 68);
+  --brand-soft: oklch(72% 0.16 72 / 0.14);
+  --brand-ink: oklch(22% 0.05 72);
+
+  --pos: oklch(52% 0.14 152);
+  --pos-soft: oklch(52% 0.14 152 / 0.10);
+  --neg: oklch(54% 0.19 22);
+  --neg-soft: oklch(54% 0.19 22 / 0.08);
+  --warn: oklch(64% 0.18 50);
+  --warn-soft: oklch(64% 0.18 50 / 0.10);
+
+  --focus: var(--brand);
+
+  --shadow-sm-val: 0 1px 2px oklch(0% 0 0 / 0.05), 0 0 0 1px var(--line);
+  --shadow-md-val: 0 2px 8px oklch(0% 0 0 / 0.06), 0 0 0 1px var(--line);
+  --shadow-lg-val: 0 8px 24px oklch(0% 0 0 / 0.08), 0 0 0 1px var(--line);
 }
 
+/* =========================================================================
+   Base styles
+   ========================================================================= */
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg-0);
+  color: var(--fg-0);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: contain;
   user-select: none;
 }
 
-/* Onboarding animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.85);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.5s ease-out both;
-}
-
-.animate-scale-in {
-  animation: scaleIn 0.4s ease-out both;
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+/* Numeric utility — always mono, tabular figures */
+.ft-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  letter-spacing: -0.01em;
 }
 
 /* Safe area for PWA bottom nav */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Scrollbar hiding for chips */
+.hide-scrollbar {
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useLoginMutation } from "@/services/auth/auth.hooks";
+import { Mail, Lock, Check } from "lucide-react";
 import * as v from "valibot";
 
 const LoginSchema = v.object({
@@ -23,6 +23,8 @@ const LoginSchema = v.object({
 export function LoginForm() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [showPwd, setShowPwd] = React.useState(false);
+  const [remember, setRemember] = React.useState(true);
   const [validationError, setValidationError] = React.useState("");
 
   const loginMutation = useLoginMutation();
@@ -30,7 +32,6 @@ export function LoginForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError("");
-
     try {
       const parsedData = v.parse(LoginSchema, { email, password });
       loginMutation.mutate(parsedData);
@@ -45,58 +46,62 @@ export function LoginForm() {
     validationError || (loginMutation.error?.message ?? "");
 
   return (
-    <form className="flex flex-col gap-5 mt-2" onSubmit={handleSubmit}>
-      <div className="flex flex-col gap-2">
-        <Label
-          htmlFor="email"
-          className="font-bold text-text-navy dark:text-white"
+    <form className="flex flex-col gap-3 mt-9" onSubmit={handleSubmit}>
+      <Input
+        type="email"
+        placeholder="Email address"
+        icon={<Mail size={18} />}
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+      />
+      <Input
+        type={showPwd ? "text" : "password"}
+        placeholder="Password"
+        icon={<Lock size={18} />}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+        suffix={
+          <button
+            type="button"
+            onClick={() => setShowPwd(!showPwd)}
+            className="text-[11px] text-fg-2 hover:text-fg-0 uppercase tracking-[0.04em] font-medium cursor-pointer"
+          >
+            {showPwd ? "Hide" : "Show"}
+          </button>
+        }
+      />
+
+      {/* Extras row */}
+      <div className="flex items-center justify-between mt-1">
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 text-[13px] text-fg-1 cursor-pointer"
+          onClick={() => setRemember(!remember)}
         >
-          Email
-        </Label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="m@example.com"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <Label
-            htmlFor="password"
-            className="font-bold text-text-navy dark:text-white"
+          <div
+            className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
+              remember
+                ? "bg-brand border-brand text-brand-ink"
+                : "bg-bg-1 border-line"
+            }`}
           >
-            Password
-          </Label>
-          <a
-            href="#"
-            className="text-sm font-bold text-primary hover:text-primary/80 transition-colors"
-          >
-            Forgot password?
-          </a>
-        </div>
-        <Input
-          id="password"
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-        />
+            {remember && <Check size={11} />}
+          </div>
+          Remember me
+        </button>
+        <a className="text-[13px] text-brand hover:text-brand-hi cursor-pointer">
+          Forgot password?
+        </a>
       </div>
+
       {errorMessage && (
-        <p className="text-sm font-bold text-accent-coral text-center">
-          {errorMessage}
-        </p>
+        <p className="text-[13px] text-neg text-center">{errorMessage}</p>
       )}
-      <Button
-        className="w-full mt-2"
-        type="submit"
-        disabled={loginMutation.isPending}
-      >
-        {loginMutation.isPending ? "Signing In..." : "Sign In"}
+
+      <Button className="w-full mt-4" type="submit" disabled={loginMutation.isPending}>
+        {loginMutation.isPending ? "Signing in..." : "Sign in"}
       </Button>
     </form>
   );

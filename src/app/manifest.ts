@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Track your expenses and manage your budget offline.",
     start_url: "/",
     display: "standalone", // This removes the browser UI (address bar, navigation)
-    background_color: "#ffffff",
-    theme_color: "#000000",
+    background_color: "#111112",
+    theme_color: "#111112",
     icons: [
       {
         src: "/icon-192x192.png",

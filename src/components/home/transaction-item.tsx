@@ -1,82 +1,66 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { 
-  Coffee, 
-  ShoppingCart, 
-  Coins, 
-  Car, 
-  Utensils, 
-  ArrowUpRight, 
-  ArrowDownRight,
-  LucideIcon
-} from "lucide-react";
+import { Repeat } from "lucide-react";
 
 interface TransactionItemProps {
   title: string;
   category: string;
   amount: number;
-  date: string;
+  time: string;
   type: "income" | "expense";
   icon?: string;
+  recurring?: boolean;
   className?: string;
 }
-
-const CATEGORY_ICONS: Record<string, { icon: LucideIcon; color: string; bg: string }> = {
-  coffee: { icon: Coffee, color: "text-amber-600", bg: "bg-amber-100" },
-  groceries: { icon: ShoppingCart, color: "text-blue-600", bg: "bg-blue-100" },
-  income: { icon: Coins, color: "text-primary", bg: "bg-primary/10" },
-  gas: { icon: Car, color: "text-slate-600", bg: "bg-slate-100" },
-  food: { icon: Utensils, color: "text-rose-600", bg: "bg-rose-100" },
-};
 
 export function TransactionItem({
   title,
   category,
   amount,
-  date,
+  time,
   type,
   icon,
+  recurring,
   className,
 }: TransactionItemProps) {
-  const meta = CATEGORY_ICONS[icon || category.toLowerCase()] || CATEGORY_ICONS.groceries;
-  const Icon = meta.icon;
-
   const isIncome = type === "income";
+  const sign = isIncome ? "+" : "\u2212";
 
   return (
     <div
       className={cn(
-        "bg-white dark:bg-[#122A23] p-4 rounded-xl shadow-soft flex items-center justify-between active:scale-[0.98] transition-transform",
+        "grid grid-cols-[40px_1fr_auto] gap-3 items-center px-3 py-2.5 rounded-sm cursor-pointer hover:bg-bg-1 transition-colors",
         className
       )}
     >
-      <div className="flex items-center gap-4">
-        <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-xl", meta.bg)}>
-          <Icon className={cn("w-6 h-6", meta.color)} />
+      {/* Avatar */}
+      <div className="w-10 h-10 rounded-xl bg-bg-2 border border-line flex items-center justify-center text-[17px] text-fg-1">
+        {icon || "\u2022"}
+      </div>
+
+      {/* Info */}
+      <div className="min-w-0">
+        <div className="text-[14px] font-medium text-fg-0 truncate flex items-center gap-1.5">
+          {title}
+          {recurring && (
+            <span className="text-fg-2 flex items-center">
+              <Repeat size={11} strokeWidth={1.75} />
+            </span>
+          )}
         </div>
-        <div>
-          <p className="font-bold text-base text-text-navy dark:text-white leading-tight">
-            {title}
-          </p>
-          <p className="text-xs font-semibold text-text-muted mt-1">{date}</p>
+        <div className="text-[12px] text-fg-2 mt-0.5 truncate">
+          {category} · {time}
         </div>
       </div>
-      <div className="text-right">
-        <div className="flex items-center justify-end gap-0.5">
-          {isIncome ? (
-            <ArrowUpRight size={14} className="text-primary" />
-          ) : (
-            <ArrowDownRight size={14} className="text-accent-coral" />
-          )}
-          <p
-            className={cn(
-              "font-extrabold text-lg",
-              isIncome ? "text-primary" : "text-accent-coral"
-            )}
-          >
-            {isIncome ? "+" : "-"}${Math.abs(amount).toFixed(2)}
-          </p>
-        </div>
+
+      {/* Amount */}
+      <div
+        className={cn(
+          "font-mono tabular-nums text-[14px] font-medium whitespace-nowrap text-right",
+          isIncome ? "text-pos" : "text-fg-0"
+        )}
+      >
+        {sign} ${Math.abs(amount).toFixed(2)}
       </div>
     </div>
   );

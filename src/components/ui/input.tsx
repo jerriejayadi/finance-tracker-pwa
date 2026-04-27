@@ -1,20 +1,37 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-export type InputProps = React.InputHTMLAttributes<HTMLInputElement>
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  icon?: React.ReactNode;
+  suffix?: React.ReactNode;
+}
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, type, icon, suffix, ...props }, ref) => {
     return (
-      <input
-        type={type}
-        className={cn(
-          "flex h-12 w-full rounded-xl border-none outline-none ring-1 ring-neutral-200 dark:ring-neutral-800 bg-white dark:bg-neutral-950 px-4 py-3 text-base shadow-sm transition-all duration-300 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:shadow-aura disabled:cursor-not-allowed disabled:opacity-50",
-          className
+      <div className="relative flex items-center">
+        {icon && (
+          <span className="absolute left-3.5 text-fg-2 pointer-events-none flex items-center justify-center">
+            {icon}
+          </span>
         )}
-        ref={ref}
-        {...props}
-      />
+        <input
+          type={type}
+          className={cn(
+            "flex h-[52px] w-full rounded-sm border border-line bg-bg-1 px-3.5 py-2.5 text-[15px] text-fg-0 font-sans transition-colors placeholder:text-fg-2 focus-visible:outline-none focus-visible:border-brand disabled:cursor-not-allowed disabled:opacity-50",
+            icon && "pl-11",
+            suffix && "pr-16",
+            className
+          )}
+          ref={ref}
+          {...props}
+        />
+        {suffix && (
+          <span className="absolute right-3 flex items-center">
+            {suffix}
+          </span>
+        )}
+      </div>
     )
   }
 )

@@ -1,79 +1,99 @@
-// TODO: Implement proper form validation
 import { RegisterForm } from "./register-form";
-import { Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Logo } from "@/components/ui/logo";
 
 export const metadata: Metadata = {
-  title: "Sign Up — Fintrack",
-  description: "Create your Fintrack account to start tracking your finances.",
+  title: "Sign up — FinTrack",
+  description: "Create your FinTrack account to start tracking your finances.",
 };
 
 export default function RegisterPage() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-background-light dark:bg-background-dark px-6 pb-safe">
-      {/* Top spacing + branding */}
-      <div className="flex flex-col items-center pt-16 pb-8 gap-3">
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shadow-aura">
-          <Wallet size={32} strokeWidth={1.5} className="text-primary" />
-        </div>
-        <h1 className="text-2xl font-extrabold text-text-navy dark:text-white tracking-tight">
-          Create an Account
+    <div className="flex flex-col min-h-dvh bg-bg-0 px-6 pb-8 pt-6">
+      {/* Top bar */}
+      <div className="flex items-center justify-between">
+        <Logo size={28} />
+        <Link
+          href="/login"
+          className="text-[13px] text-fg-1 hover:bg-bg-1 px-2 py-1.5 rounded-md cursor-pointer"
+        >
+          Sign in
+        </Link>
+      </div>
+
+      {/* Hero */}
+      <div className="mt-14">
+        <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-0.025em] text-balance">
+          Start tracking <span className="text-brand">today.</span>
         </h1>
-        <p className="text-sm font-semibold text-text-muted">
-          Sign up to get started on your Fintrack journey.
+        <p className="text-[15px] text-fg-1 leading-[1.5] mt-3 max-w-[30ch]">
+          Create a free account. No card needed.
         </p>
       </div>
 
-      {/* Register form */}
-      <div className=" flex flex-col w-full max-w-sm mx-auto">
-        <RegisterForm />
+      {/* Form */}
+      <RegisterForm />
 
-        {/* Divider */}
-        <div className="flex items-center gap-4 my-6">
-          <div className="flex-1 h-px bg-text-muted/20" />
-          <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
-            or continue with
-          </span>
-          <div className="flex-1 h-px bg-text-muted/20" />
-        </div>
+      {/* Divider */}
+      <div className="flex items-center gap-3 my-5">
+        <div className="flex-1 h-px bg-line" />
+        <span className="text-[11px] text-fg-2 uppercase tracking-[0.06em]">
+          or continue with
+        </span>
+        <div className="flex-1 h-px bg-line" />
+      </div>
 
-        {/* Google SSO placeholder */}
-        <button
-          type="button"
-          className="flex items-center justify-center gap-3 w-full h-12 rounded-full ring-1 ring-text-muted/20 bg-white dark:bg-white/5 text-text-navy dark:text-white font-bold text-base transition-all duration-300 hover:ring-primary/40 hover:shadow-soft active:scale-95"
-        >
-          <svg width="20" height="20" viewBox="0 0 48 48">
+      {/* Social auth */}
+      <div className="flex gap-2.5">
+        <button className="flex-1 h-12 rounded-sm bg-bg-1 border border-line text-fg-0 text-[14px] font-medium flex items-center justify-center gap-2 cursor-pointer hover:bg-bg-2 transition-colors">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path d="M19 12.5a4.5 4.5 0 0 1 .8-2.5 4.6 4.6 0 0 0-3.6-2c-1.5 0-3 1-3.8 1s-2-1-3.4-1c-1.7 0-3.4 1-4.3 2.6-1.9 3.2-.5 7.9 1.3 10.5.9 1.3 2 2.7 3.4 2.7s1.9-.9 3.5-.9 2.1.9 3.5.9 2.4-1.3 3.3-2.6a11.4 11.4 0 0 0 1.5-3.1 4.4 4.4 0 0 1-2.2-3.6z" />
+            <path d="M15 4.5A4.4 4.4 0 0 0 16 1a4.5 4.5 0 0 0-2.9 1.5A4.2 4.2 0 0 0 12 5.9a3.7 3.7 0 0 0 3-1.4z" />
+          </svg>
+          Apple
+        </button>
+        <button className="flex-1 h-12 rounded-sm bg-bg-1 border border-line text-fg-0 text-[14px] font-medium flex items-center justify-center gap-2 cursor-pointer hover:bg-bg-2 transition-colors">
+          <svg width="18" height="18" viewBox="0 0 24 24">
             <path
-              fill="#FFC107"
-              d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
+              fill="#4285F4"
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
             />
             <path
-              fill="#FF3D00"
-              d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
+              fill="#34A853"
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"
             />
             <path
-              fill="#4CAF50"
-              d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0124 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
+              fill="#FBBC05"
+              d="M5.84 14.09a6.6 6.6 0 0 1 0-4.18V7.07H2.18a11 11 0 0 0 0 9.86l3.66-2.84z"
             />
             <path
-              fill="#1976D2"
-              d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 01-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
+              fill="#EA4335"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
           Google
         </button>
+      </div>
 
-        {/* Sign in link */}
-        <p className="text-center text-sm text-text-muted font-semibold mt-8 mb-6">
+      {/* Footer */}
+      <div className="mt-auto pt-6 text-center">
+        <div className="text-[13px] text-fg-2">
           Already have an account?{" "}
-          <Link
-            href="/login"
-            className="font-bold text-primary hover:text-primary/80 transition-colors"
-          >
+          <Link href="/login" className="text-brand hover:text-brand-hi">
             Sign in
           </Link>
-        </p>
+        </div>
+        <div className="text-[11px] text-fg-2 mt-4 leading-[1.5]">
+          By continuing you agree to our{" "}
+          <a className="text-fg-1 cursor-pointer">Terms</a> and{" "}
+          <a className="text-fg-1 cursor-pointer">Privacy Policy</a>.
+        </div>
       </div>
     </div>
   );

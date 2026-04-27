@@ -19,30 +19,34 @@ export function GoalProgress({
   className,
 }: GoalProgressProps) {
   const percentage = Math.min(Math.round((current / target) * 100), 100);
+  const warn = percentage > 85;
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <div className="flex justify-between items-end">
+      <div className="flex justify-between items-baseline">
         <div>
-          <p className="text-xs font-bold text-text-muted uppercase tracking-wider">
+          <p className="text-[11px] font-medium text-fg-2 uppercase tracking-[0.04em]">
             {label}
           </p>
-          <p className="text-lg font-black text-text-navy dark:text-white">
-            {current.toLocaleString()} <span className="text-sm font-bold text-text-muted">{unit}</span>
+          <p className="ft-num text-[17px] font-medium text-fg-0 mt-0.5">
+            {current.toLocaleString()}{" "}
+            <span className="text-[13px] text-fg-2">{unit}</span>
           </p>
         </div>
-        <p className="text-sm font-black text-primary">{percentage}%</p>
+        <p className="ft-num text-[13px] text-fg-1">{percentage}%</p>
       </div>
-      
-      <div className="w-full h-3 bg-text-muted/10 rounded-full overflow-hidden relative">
-        {/* Animated progress fill */}
-        <div 
-          className="h-full bg-primary rounded-full transition-all duration-1000 ease-out shadow-[0_0_12px_rgba(5,189,137,0.4)]"
+
+      <div className="w-full h-1.5 bg-bg-3 rounded-full overflow-hidden">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all duration-500",
+            warn ? "bg-neg" : "bg-fg-0"
+          )}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      
-      <p className="text-[10px] font-bold text-text-muted text-right italic">
+
+      <p className="ft-num text-[11px] text-fg-2 text-right">
         Target: {target.toLocaleString()} {unit}
       </p>
     </div>
