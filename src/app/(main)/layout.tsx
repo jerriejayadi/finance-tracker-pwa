@@ -73,7 +73,7 @@ export default function DashboardLayout({
       <div className="flex-1 pb-24">{children}</div>
 
       {/* Tab bar */}
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] grid grid-cols-5 bg-bg-0/[0.78] backdrop-blur-[18px] border-t border-line px-2 pt-2 pb-[26px] pb-safe z-30">
+      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full  grid grid-cols-5 bg-bg-0/[0.78] backdrop-blur-[18px] border-t border-line px-2 pt-2 pb-[26px] pb-safe z-30">
         {TAB_LEFT.map((item) => {
           const isActive = pathname === item.id;
           const Icon = item.icon;
