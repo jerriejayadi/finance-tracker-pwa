@@ -1,25 +1,43 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { profileService, UpdateProfilePayload } from "./profile.service";
+import { QueryConfig, MutationConfig } from "@/lib/query-client";
 
 export const profileKeys = {
   all: ["profile"] as const,
 };
 
-export const useGetProfile = () => {
+export const getProfileQueryOptions = () => ({
+  queryKey: profileKeys.all,
+  queryFn: profileService.getProfile,
+});
+
+type UseGetProfileParams = {
+  queryConfig?: QueryConfig<typeof getProfileQueryOptions>;
+};
+
+export const useGetProfile = ({ queryConfig }: UseGetProfileParams = {}) => {
   return useQuery({
-    queryKey: profileKeys.all,
-    queryFn: profileService.getProfile,
+    ...getProfileQueryOptions(),
+    ...queryConfig,
   });
 };
 
-export const useUpdateProfile = () => {
+type UseUpdateProfileParams = {
+  mutationConfig?: MutationConfig<typeof profileService.updateProfile>;
+};
+
+export const useUpdateProfile = ({
+  mutationConfig,
+}: UseUpdateProfileParams = {}) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (payload: UpdateProfilePayload) =>
       profileService.updateProfile(payload),
-    onSuccess: () => {
+    onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: profileKeys.all });
+      mutationConfig?.onSuccess?.(...args);
     },
+    ...mutationConfig,
   });
 };
