@@ -15,8 +15,16 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { AddTransactionDrawer } from "@/components/transactions/add-transaction-drawer";
+import { useGetProfile } from "@/services/profile/profile.hooks";
 
 type TxType = "expense" | "income" | "transfer";
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
 
 const AddTxContext = React.createContext<(type?: TxType) => void>(() => {});
 export const useAddTransaction = () => React.useContext(AddTxContext);
@@ -39,11 +47,22 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [addTxOpen, setAddTxOpen] = React.useState(false);
   const [addTxType, setAddTxType] = React.useState<TxType>("expense");
+  const { data: profile } = useGetProfile();
 
   const openAddTx = React.useCallback((type: TxType = "expense") => {
     setAddTxType(type);
     setAddTxOpen(true);
   }, []);
+
+  const firstName = profile?.display_name?.split(" ")[0] ?? "";
+  const initials = profile?.display_name
+    ? profile.display_name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "";
 
   return (
     <AddTxContext.Provider value={openAddTx}>
@@ -51,9 +70,9 @@ export default function DashboardLayout({
       {/* App header */}
       <header className="flex items-center justify-between px-5 pt-3 pb-2">
         <div>
-          <div className="text-[12px] text-fg-2">Good afternoon</div>
+          <div className="text-[12px] text-fg-2">{getGreeting()}</div>
           <div className="text-[17px] font-semibold text-fg-0 mt-0.5">
-            Alex
+            {firstName}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -65,7 +84,7 @@ export default function DashboardLayout({
             <span className="absolute top-2 right-2 w-[7px] h-[7px] rounded-full bg-brand border-2 border-bg-0" />
           </button>
           <Link href="/profile">
-            <Avatar size="sm">AM</Avatar>
+            <Avatar size="sm">{initials}</Avatar>
           </Link>
         </div>
       </header>

@@ -12,6 +12,8 @@ import {
 } from "@/services/auth/auth.hooks";
 import { Mail, Lock, User, Check, ArrowLeft } from "lucide-react";
 import * as v from "valibot";
+import { useForm } from "react-hook-form";
+import { valibotResolver } from "@hookform/resolvers/valibot";
 import { Label } from "@/components/ui/label";
 
 const CredentialsSchema = v.object({
@@ -48,93 +50,35 @@ const ProfileSchema = v.object({
   ),
 });
 
+type CredentialsFormValues = v.InferOutput<typeof CredentialsSchema>;
+type OtpFormValues = v.InferOutput<typeof OtpSchema>;
+type ProfileFormValues = v.InferOutput<typeof ProfileSchema>;
+
 type Step = "CREDENTIALS" | "VERIFY_OTP" | "PROFILE";
 
 export function RegisterForm() {
   const [step, setStep] = React.useState<Step>("CREDENTIALS");
-
-  const [fullName, setFullName] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
   const [showPwd, setShowPwd] = React.useState(false);
   const [agree, setAgree] = React.useState(false);
-  const [otp, setOtp] = React.useState("");
-  const [phone, setPhone] = React.useState("");
-  const [currency, setCurrency] = React.useState("IDR");
 
-  const [validationError, setValidationError] = React.useState("");
+  // We need fullName and email across steps, so we store them here
+  const [storedFullName, setStoredFullName] = React.useState("");
+  const [storedEmail, setStoredEmail] = React.useState("");
 
   const registerMutation = useRegisterMutation({
     mutationConfig: {
-      onSuccess: () => {
-        setValidationError("");
-        setStep("VERIFY_OTP");
-      },
+      onSuccess: () => setStep("VERIFY_OTP"),
     },
   });
 
   const verifyOtpMutation = useVerifyOtpMutation({
     mutationConfig: {
-      onSuccess: () => {
-        setValidationError("");
-        setStep("PROFILE");
-      },
+      onSuccess: () => setStep("PROFILE"),
     },
   });
 
   const setupProfileMutation = useSetupProfileMutation();
   const resendOtpMutation = useResendOtpMutation();
-
-  const handleStep1Submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setValidationError("");
-    try {
-      const parsedData = v.parse(CredentialsSchema, {
-        fullName,
-        email,
-        password,
-      });
-      registerMutation.mutate({
-        email: parsedData.email,
-        password: parsedData.password,
-      });
-    } catch (err: unknown) {
-      if (err instanceof v.ValiError)
-        setValidationError(err.issues[0].message);
-    }
-  };
-
-  const handleStep2Submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setValidationError("");
-    try {
-      const parsedData = v.parse(OtpSchema, { otp });
-      verifyOtpMutation.mutate({
-        email,
-        token: parsedData.otp,
-        type: "signup",
-      });
-    } catch (err: unknown) {
-      if (err instanceof v.ValiError)
-        setValidationError(err.issues[0].message);
-    }
-  };
-
-  const handleStep3Submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setValidationError("");
-    try {
-      const parsedData = v.parse(ProfileSchema, { phone, currency });
-      setupProfileMutation.mutate({
-        display_name: fullName,
-        phone: parsedData.phone,
-        currency_preference: parsedData.currency,
-      });
-    } catch (err: unknown) {
-      if (err instanceof v.ValiError)
-        setValidationError(err.issues[0].message);
-    }
-  };
 
   const isPending =
     registerMutation.isPending ||
@@ -149,178 +93,325 @@ export function RegisterForm() {
       : "") ||
     (step === "PROFILE" ? setupProfileMutation.error?.message : "");
 
-  const errorMessage = validationError || apiError;
+  const handleCredentialsSubmit = (data: CredentialsFormValues) => {
+    setStoredFullName(data.fullName);
+    setStoredEmail(data.email);
+    registerMutation.mutate({
+      email: data.email,
+      password: data.password,
+    });
+  };
+
+  const handleOtpSubmit = (data: OtpFormValues) => {
+    verifyOtpMutation.mutate({
+      email: storedEmail,
+      token: data.otp,
+      type: "signup",
+    });
+  };
+
+  const handleProfileSubmit = (data: ProfileFormValues) => {
+    setupProfileMutation.mutate({
+      display_name: storedFullName,
+      phone: data.phone,
+      currency_preference: data.currency,
+    });
+  };
 
   return (
     <div className="flex flex-col gap-3 mt-9">
       {step === "CREDENTIALS" && (
-        <form className="flex flex-col gap-3" onSubmit={handleStep1Submit}>
-          <Input
-            type="text"
-            placeholder="Full name"
-            icon={<User size={18} />}
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            required
-          />
-          <Input
-            type="email"
-            placeholder="Email address"
-            icon={<Mail size={18} />}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <Input
-            type={showPwd ? "text" : "password"}
-            placeholder="Create a password"
-            icon={<Lock size={18} />}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            suffix={
-              <button
-                type="button"
-                onClick={() => setShowPwd(!showPwd)}
-                className="text-[11px] text-fg-2 hover:text-fg-0 uppercase tracking-[0.04em] font-medium cursor-pointer"
-              >
-                {showPwd ? "Hide" : "Show"}
-              </button>
-            }
-          />
-
-          <PasswordStrength value={password} className="-mt-1 px-0.5" />
-
-          {/* Terms checkbox */}
-          <div className="mt-1">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 text-[13px] text-fg-1 cursor-pointer"
-              onClick={() => setAgree(!agree)}
-            >
-              <div
-                className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
-                  agree
-                    ? "bg-brand border-brand text-brand-ink"
-                    : "bg-bg-1 border-line"
-                }`}
-              >
-                {agree && <Check size={11} />}
-              </div>
-              I agree to the{" "}
-              <span className="text-brand ml-[-2px]">Terms</span>
-            </button>
-          </div>
-
-          {errorMessage && (
-            <p className="text-[13px] text-neg text-center">{errorMessage}</p>
-          )}
-
-          <Button
-            className="w-full mt-4"
-            type="submit"
-            disabled={isPending}
-          >
-            {isPending ? "Creating account..." : "Create account"}
-          </Button>
-        </form>
+        <CredentialsStep
+          showPwd={showPwd}
+          setShowPwd={setShowPwd}
+          agree={agree}
+          setAgree={setAgree}
+          onSubmit={handleCredentialsSubmit}
+          isPending={isPending}
+          apiError={apiError}
+        />
       )}
 
       {step === "VERIFY_OTP" && (
-        <form className="flex flex-col gap-4" onSubmit={handleStep2Submit}>
-          <div className="flex flex-col items-center justify-center p-4 text-center">
-            <p className="text-[13px] text-fg-1 mb-4">
-              We&apos;ve sent a verification code to{" "}
-              <span className="text-fg-0 font-medium">{email}</span>.
-            </p>
-            <div className="flex flex-col gap-1.5 w-full text-left">
-              <Label htmlFor="otp">Enter 6-digit code</Label>
-              <Input
-                id="otp"
-                type="text"
-                placeholder="123456"
-                required
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                className="text-center tracking-[0.5em] font-mono text-lg"
-                maxLength={6}
-              />
-            </div>
-          </div>
-          {errorMessage && (
-            <p className="text-[13px] text-neg text-center">{errorMessage}</p>
-          )}
-          {resendOtpMutation.isSuccess && (
-            <p className="text-[13px] text-pos text-center">
-              A new code has been sent.
-            </p>
-          )}
-          <div className="flex justify-center -mt-2">
-            <button
-              type="button"
-              className="text-[13px] text-fg-2 hover:text-fg-0 transition-colors cursor-pointer"
-              onClick={() =>
-                resendOtpMutation.mutate({ type: "signup", email })
-              }
-              disabled={isPending}
-            >
-              Resend code
-            </button>
-          </div>
-          <div className="flex gap-2 mt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                setStep("CREDENTIALS");
-                setValidationError("");
-              }}
-              disabled={isPending}
-            >
-              <ArrowLeft size={18} />
-            </Button>
-            <Button className="flex-1" type="submit" disabled={isPending}>
-              {isPending ? "Verifying..." : "Verify email"}
-            </Button>
-          </div>
-        </form>
+        <VerifyOtpStep
+          email={storedEmail}
+          onSubmit={handleOtpSubmit}
+          onResend={() =>
+            resendOtpMutation.mutate({ type: "signup", email: storedEmail })
+          }
+          onBack={() => setStep("CREDENTIALS")}
+          isPending={isPending}
+          apiError={apiError}
+          isResendSuccess={resendOtpMutation.isSuccess}
+        />
       )}
 
       {step === "PROFILE" && (
-        <form className="flex flex-col gap-4" onSubmit={handleStep3Submit}>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="phone">Phone number</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="+62812..."
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="currency">Preferred currency</Label>
-            <Input
-              id="currency"
-              type="text"
-              placeholder="IDR"
-              maxLength={3}
-              required
-              className="uppercase"
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-            />
-          </div>
-          {errorMessage && (
-            <p className="text-[13px] text-neg text-center">{errorMessage}</p>
-          )}
-          <Button className="w-full mt-2" type="submit" disabled={isPending}>
-            {isPending ? "Saving..." : "Complete setup"}
-          </Button>
-        </form>
+        <ProfileStep
+          onSubmit={handleProfileSubmit}
+          isPending={isPending}
+          apiError={apiError}
+        />
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Step components
+// ---------------------------------------------------------------------------
+
+interface CredentialsStepProps {
+  showPwd: boolean;
+  setShowPwd: (val: boolean) => void;
+  agree: boolean;
+  setAgree: (val: boolean) => void;
+  onSubmit: (data: CredentialsFormValues) => void;
+  isPending: boolean;
+  apiError?: string;
+}
+
+function CredentialsStep({
+  showPwd,
+  setShowPwd,
+  agree,
+  setAgree,
+  onSubmit,
+  isPending,
+  apiError,
+}: CredentialsStepProps) {
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<CredentialsFormValues>({
+    resolver: valibotResolver(CredentialsSchema),
+    defaultValues: { fullName: "", email: "", password: "" },
+  });
+
+  const password = watch("password");
+
+  return (
+    <form className="flex flex-col gap-3" onSubmit={handleSubmit(onSubmit)}>
+      <div className="flex flex-col gap-1">
+        <Input
+          type="text"
+          placeholder="Full name"
+          icon={<User size={18} />}
+          {...register("fullName")}
+        />
+        {errors.fullName && (
+          <p className="text-[13px] text-neg px-1">
+            {errors.fullName.message}
+          </p>
+        )}
+      </div>
+      <div className="flex flex-col gap-1">
+        <Input
+          type="email"
+          placeholder="Email address"
+          icon={<Mail size={18} />}
+          {...register("email")}
+        />
+        {errors.email && (
+          <p className="text-[13px] text-neg px-1">{errors.email.message}</p>
+        )}
+      </div>
+      <div className="flex flex-col gap-1">
+        <Input
+          type={showPwd ? "text" : "password"}
+          placeholder="Create a password"
+          icon={<Lock size={18} />}
+          {...register("password")}
+          suffix={
+            <button
+              type="button"
+              onClick={() => setShowPwd(!showPwd)}
+              className="text-[11px] text-fg-2 hover:text-fg-0 uppercase tracking-[0.04em] font-medium cursor-pointer"
+            >
+              {showPwd ? "Hide" : "Show"}
+            </button>
+          }
+        />
+        {errors.password && (
+          <p className="text-[13px] text-neg px-1">
+            {errors.password.message}
+          </p>
+        )}
+      </div>
+
+      <PasswordStrength value={password} className="-mt-1 px-0.5" />
+
+      {/* Terms checkbox */}
+      <div className="mt-1">
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 text-[13px] text-fg-1 cursor-pointer"
+          onClick={() => setAgree(!agree)}
+        >
+          <div
+            className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
+              agree
+                ? "bg-brand border-brand text-brand-ink"
+                : "bg-bg-1 border-line"
+            }`}
+          >
+            {agree && <Check size={11} />}
+          </div>
+          I agree to the <span className="text-brand ml-[-2px]">Terms</span>
+        </button>
+      </div>
+
+      {apiError && (
+        <p className="text-[13px] text-neg text-center">{apiError}</p>
+      )}
+
+      <Button className="w-full mt-4" type="submit" disabled={isPending}>
+        {isPending ? "Creating account..." : "Create account"}
+      </Button>
+    </form>
+  );
+}
+
+interface VerifyOtpStepProps {
+  email: string;
+  onSubmit: (data: OtpFormValues) => void;
+  onResend: () => void;
+  onBack: () => void;
+  isPending: boolean;
+  apiError?: string;
+  isResendSuccess: boolean;
+}
+
+function VerifyOtpStep({
+  email,
+  onSubmit,
+  onResend,
+  onBack,
+  isPending,
+  apiError,
+  isResendSuccess,
+}: VerifyOtpStepProps) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<OtpFormValues>({
+    resolver: valibotResolver(OtpSchema),
+    defaultValues: { otp: "" },
+  });
+
+  return (
+    <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
+      <div className="flex flex-col items-center justify-center p-4 text-center">
+        <p className="text-[13px] text-fg-1 mb-4">
+          We&apos;ve sent a verification code to{" "}
+          <span className="text-fg-0 font-medium">{email}</span>.
+        </p>
+        <div className="flex flex-col gap-1.5 w-full text-left">
+          <Label htmlFor="otp">Enter 6-digit code</Label>
+          <Input
+            id="otp"
+            type="text"
+            placeholder="123456"
+            {...register("otp")}
+            className="text-center tracking-[0.5em] font-mono text-lg"
+            maxLength={6}
+          />
+          {errors.otp && (
+            <p className="text-[13px] text-neg px-1">{errors.otp.message}</p>
+          )}
+        </div>
+      </div>
+      {apiError && (
+        <p className="text-[13px] text-neg text-center">{apiError}</p>
+      )}
+      {isResendSuccess && (
+        <p className="text-[13px] text-pos text-center">
+          A new code has been sent.
+        </p>
+      )}
+      <div className="flex justify-center -mt-2">
+        <button
+          type="button"
+          className="text-[13px] text-fg-2 hover:text-fg-0 transition-colors cursor-pointer"
+          onClick={onResend}
+          disabled={isPending}
+        >
+          Resend code
+        </button>
+      </div>
+      <div className="flex gap-2 mt-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={onBack}
+          disabled={isPending}
+        >
+          <ArrowLeft size={18} />
+        </Button>
+        <Button className="flex-1" type="submit" disabled={isPending}>
+          {isPending ? "Verifying..." : "Verify email"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+interface ProfileStepProps {
+  onSubmit: (data: ProfileFormValues) => void;
+  isPending: boolean;
+  apiError?: string;
+}
+
+function ProfileStep({ onSubmit, isPending, apiError }: ProfileStepProps) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ProfileFormValues>({
+    resolver: valibotResolver(ProfileSchema),
+    defaultValues: { phone: "", currency: "IDR" },
+  });
+
+  return (
+    <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="phone">Phone number</Label>
+        <Input
+          id="phone"
+          type="tel"
+          placeholder="+62812..."
+          {...register("phone")}
+        />
+        {errors.phone && (
+          <p className="text-[13px] text-neg px-1">{errors.phone.message}</p>
+        )}
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="currency">Preferred currency</Label>
+        <Input
+          id="currency"
+          type="text"
+          placeholder="IDR"
+          maxLength={3}
+          className="uppercase"
+          {...register("currency")}
+        />
+        {errors.currency && (
+          <p className="text-[13px] text-neg px-1">
+            {errors.currency.message}
+          </p>
+        )}
+      </div>
+      {apiError && (
+        <p className="text-[13px] text-neg text-center">{apiError}</p>
+      )}
+      <Button className="w-full mt-2" type="submit" disabled={isPending}>
+        {isPending ? "Saving..." : "Complete setup"}
+      </Button>
+    </form>
   );
 }

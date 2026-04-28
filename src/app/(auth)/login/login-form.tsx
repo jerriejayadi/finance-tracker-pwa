@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useLoginMutation } from "@/services/auth/auth.hooks";
 import { Mail, Lock, Check } from "lucide-react";
 import * as v from "valibot";
+import { useForm } from "react-hook-form";
+import { valibotResolver } from "@hookform/resolvers/valibot";
 
 const LoginSchema = v.object({
   email: v.pipe(
@@ -20,58 +22,62 @@ const LoginSchema = v.object({
   ),
 });
 
+type LoginFormValues = v.InferOutput<typeof LoginSchema>;
+
 export function LoginForm() {
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
   const [showPwd, setShowPwd] = React.useState(false);
   const [remember, setRemember] = React.useState(true);
-  const [validationError, setValidationError] = React.useState("");
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: valibotResolver(LoginSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
   const loginMutation = useLoginMutation();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setValidationError("");
-    try {
-      const parsedData = v.parse(LoginSchema, { email, password });
-      loginMutation.mutate(parsedData);
-    } catch (err: unknown) {
-      if (err instanceof v.ValiError) {
-        setValidationError(err.issues[0].message);
-      }
-    }
+  const onSubmit = (data: LoginFormValues) => {
+    loginMutation.mutate(data);
   };
 
-  const errorMessage =
-    validationError || (loginMutation.error?.message ?? "");
+  const apiError = loginMutation.error?.message ?? "";
 
   return (
-    <form className="flex flex-col gap-3 mt-9" onSubmit={handleSubmit}>
-      <Input
-        type="email"
-        placeholder="Email address"
-        icon={<Mail size={18} />}
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-      <Input
-        type={showPwd ? "text" : "password"}
-        placeholder="Password"
-        icon={<Lock size={18} />}
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-        suffix={
-          <button
-            type="button"
-            onClick={() => setShowPwd(!showPwd)}
-            className="text-[11px] text-fg-2 hover:text-fg-0 uppercase tracking-[0.04em] font-medium cursor-pointer"
-          >
-            {showPwd ? "Hide" : "Show"}
-          </button>
-        }
-      />
+    <form className="flex flex-col gap-3 mt-9" onSubmit={handleSubmit(onSubmit)}>
+      <div className="flex flex-col gap-1">
+        <Input
+          type="email"
+          placeholder="Email address"
+          icon={<Mail size={18} />}
+          {...register("email")}
+        />
+        {errors.email && (
+          <p className="text-[13px] text-neg px-1">{errors.email.message}</p>
+        )}
+      </div>
+      <div className="flex flex-col gap-1">
+        <Input
+          type={showPwd ? "text" : "password"}
+          placeholder="Password"
+          icon={<Lock size={18} />}
+          {...register("password")}
+          suffix={
+            <button
+              type="button"
+              onClick={() => setShowPwd(!showPwd)}
+              className="text-[11px] text-fg-2 hover:text-fg-0 uppercase tracking-[0.04em] font-medium cursor-pointer"
+            >
+              {showPwd ? "Hide" : "Show"}
+            </button>
+          }
+        />
+        {errors.password && (
+          <p className="text-[13px] text-neg px-1">{errors.password.message}</p>
+        )}
+      </div>
 
       {/* Extras row */}
       <div className="flex items-center justify-between mt-1">
@@ -96,8 +102,8 @@ export function LoginForm() {
         </a>
       </div>
 
-      {errorMessage && (
-        <p className="text-[13px] text-neg text-center">{errorMessage}</p>
+      {apiError && (
+        <p className="text-[13px] text-neg text-center">{apiError}</p>
       )}
 
       <Button className="w-full mt-4" type="submit" disabled={loginMutation.isPending}>

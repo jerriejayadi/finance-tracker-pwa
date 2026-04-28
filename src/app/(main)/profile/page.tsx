@@ -26,6 +26,18 @@ import { Avatar } from "@/components/ui/avatar";
 import { SettingsGroup, SettingsRow } from "@/components/ui/settings-group";
 import { Toggle } from "@/components/ui/toggle";
 
+function getCurrencySymbol(code: string): string {
+  try {
+    return (
+      new Intl.NumberFormat("en", { style: "currency", currency: code })
+        .formatToParts(0)
+        .find((p) => p.type === "currency")?.value ?? code
+    );
+  } catch {
+    return code;
+  }
+}
+
 export default function ProfilePage() {
   const signOutMutation = useSignOutMutation();
   const { theme, setTheme } = useTheme();
@@ -44,14 +56,23 @@ export default function ProfilePage() {
     signOutMutation.mutate(undefined);
   };
 
-  const displayName = profile?.display_name || "Alex Morgan";
-  const email = profile?.email || "alex@morgan.co";
+  const displayName = profile?.display_name ?? "";
+  const email = profile?.email ?? "";
   const initials = displayName
-    .split(" ")
-    .map((n: string) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+    ? displayName
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "";
+
+  const currencyCode = profile?.currency_preference ?? "IDR";
+  const currencySymbol = getCurrencySymbol(currencyCode);
+  const shortName = displayName
+    ? `${displayName.split(" ")[0]} ${displayName.split(" ").slice(-1)[0]?.[0] ?? ""}.`
+    : "";
+  const firstDayLabel = profile?.first_day_of_week === 0 ? "Sun" : "Mon";
 
   return (
     <div className="flex flex-col gap-3.5 pb-8">
@@ -134,17 +155,17 @@ export default function ProfilePage() {
           <SettingsRow
             icon={<User size={16} strokeWidth={1.75} />}
             label="Personal info"
-            value="Alex M."
+            value={shortName}
           />
           <SettingsRow
             icon={<Globe size={16} strokeWidth={1.75} />}
             label="Currency"
-            value="USD · $"
+            value={`${currencyCode} · ${currencySymbol}`}
           />
           <SettingsRow
             icon={<Calendar size={16} strokeWidth={1.75} />}
             label="First day of week"
-            value="Mon"
+            value={firstDayLabel}
           />
         </SettingsGroup>
 
