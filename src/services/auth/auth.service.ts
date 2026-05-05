@@ -69,6 +69,20 @@ export const authService = {
       throw new Error(profileError.message);
     }
 
+    // Create default Cash account for new user
+    const { error: accountError } = await supabase.from("accounts").insert([
+      {
+        user_id: userResponse.user.id,
+        name: "Cash",
+        type: "cash",
+        icon: "💵",
+      },
+    ]);
+
+    if (accountError) {
+      throw new Error(accountError.message);
+    }
+
     return true;
   },
   logout: async () => {
