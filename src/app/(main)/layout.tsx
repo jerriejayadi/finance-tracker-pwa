@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import {
   Home,
-  Tag,
+  Receipt,
   Wallet,
   User,
   Plus,
@@ -31,7 +31,7 @@ export const useAddTransaction = () => React.useContext(AddTxContext);
 
 const TAB_LEFT = [
   { id: "/", icon: Home, label: "Home" },
-  { id: "/subs", icon: Tag, label: "Subs" },
+  { id: "/history", icon: Receipt, label: "History" },
 ] as const;
 
 const TAB_RIGHT = [
