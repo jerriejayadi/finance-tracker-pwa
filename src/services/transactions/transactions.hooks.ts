@@ -65,6 +65,7 @@ export const useCreateTransaction = ({
 }: UseCreateTransactionParams = {}) => {
   const queryClient = useQueryClient();
   return useMutation({
+    ...mutationConfig,
     mutationFn: (payload: CreateTransactionPayload) =>
       transactionsService.createTransaction(payload),
     onSuccess: (...args) => {
@@ -72,7 +73,6 @@ export const useCreateTransaction = ({
       queryClient.invalidateQueries({ queryKey: accountKeys.balances });
       mutationConfig?.onSuccess?.(...args);
     },
-    ...mutationConfig,
   });
 };
 
@@ -85,12 +85,12 @@ export const useDeleteTransactions = ({
 }: UseDeleteTransactionsParams = {}) => {
   const queryClient = useQueryClient();
   return useMutation({
+    ...mutationConfig,
     mutationFn: (ids: string[]) => transactionsService.deleteTransactions(ids),
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       queryClient.invalidateQueries({ queryKey: accountKeys.balances });
       mutationConfig?.onSuccess?.(...args);
     },
-    ...mutationConfig,
   });
 };

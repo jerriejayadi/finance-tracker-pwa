@@ -50,13 +50,14 @@ type UseCreateAccountParams = {
 export const useCreateAccount = ({ mutationConfig }: UseCreateAccountParams = {}) => {
   const queryClient = useQueryClient();
   return useMutation({
+    ...mutationConfig,
     mutationFn: (payload: CreateAccountPayload) =>
       accountsService.createAccount(payload),
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: accountKeys.all });
+      queryClient.invalidateQueries({ queryKey: accountKeys.balances });
       mutationConfig?.onSuccess?.(...args);
     },
-    ...mutationConfig,
   });
 };
 
@@ -69,13 +70,14 @@ type UseUpdateAccountParams = {
 export const useUpdateAccount = ({ mutationConfig }: UseUpdateAccountParams = {}) => {
   const queryClient = useQueryClient();
   return useMutation({
+    ...mutationConfig,
     mutationFn: ({ id, ...payload }: { id: string } & UpdateAccountPayload) =>
       accountsService.updateAccount(id, payload),
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: accountKeys.all });
+      queryClient.invalidateQueries({ queryKey: accountKeys.balances });
       mutationConfig?.onSuccess?.(...args);
     },
-    ...mutationConfig,
   });
 };
 
@@ -86,11 +88,12 @@ type UseDeleteAccountParams = {
 export const useDeleteAccount = ({ mutationConfig }: UseDeleteAccountParams = {}) => {
   const queryClient = useQueryClient();
   return useMutation({
+    ...mutationConfig,
     mutationFn: (id: string) => accountsService.deleteAccount(id),
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: accountKeys.all });
+      queryClient.invalidateQueries({ queryKey: accountKeys.balances });
       mutationConfig?.onSuccess?.(...args);
     },
-    ...mutationConfig,
   });
 };

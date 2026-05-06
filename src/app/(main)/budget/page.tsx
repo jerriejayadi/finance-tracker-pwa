@@ -11,6 +11,7 @@ import { BudgetInsight } from "@/components/budget/budget-insight";
 import { BudgetPace } from "@/components/budget/budget-pace";
 import type { BudgetCategory } from "@/components/budget/budget-types";
 import { CreateBudgetDrawer } from "@/components/budget/create-budget-drawer";
+import { EditBudgetDrawer } from "@/components/budget/edit-budget-drawer";
 import { MonthPickerDrawer } from "@/components/budget/month-picker-drawer";
 import { Chip } from "@/components/ui/chip";
 import {
@@ -18,11 +19,12 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Pencil,
   Plus,
   Tag,
 } from "lucide-react";
 import * as React from "react";
-import { useGetBudgets, useCreateBudgets } from "@/services/budgets/budgets.hooks";
+import { useGetBudgets, useCreateBudgets, useUpdateBudget, useDeleteBudget } from "@/services/budgets/budgets.hooks";
 import { useGetCategories } from "@/services/categories/categories.hooks";
 
 function pctOf(spent: number, budget: number): number {
@@ -39,6 +41,7 @@ export default function BudgetPage() {
   const [filter, setFilter] = React.useState<FilterType>("all");
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
 
   const key = monthKey(year, month);
 
@@ -60,6 +63,9 @@ export default function BudgetPage() {
       onSuccess: () => setCreateOpen(false),
     },
   });
+
+  const updateBudget = useUpdateBudget();
+  const deleteBudget = useDeleteBudget();
 
   // Map to BudgetCategory shape for existing components
   const cats: BudgetCategory[] | null = React.useMemo(() => {
@@ -124,6 +130,38 @@ export default function BudgetPage() {
     createBudgets.mutate(payloads);
   };
 
+  const handleEditSave = (rows: BudgetCategory[]) => {
+    const existingRows = rows.filter((r) => !r.id.startsWith("new-"));
+    const newRows = rows.filter((r) => r.id.startsWith("new-"));
+
+    // Update existing budgets
+    for (const r of existingRows) {
+      updateBudget.mutate({ id: r.id, planned_amount: r.budget, category: r.name });
+    }
+
+    // Create new budget entries
+    if (newRows.length > 0) {
+      const payloads = newRows.map((r) => {
+        const cat = categories.find((c) => c.name === r.name);
+        return {
+          month_year: key,
+          category: r.name,
+          category_id: cat?.id,
+          planned_amount: r.budget,
+        };
+      });
+      createBudgets.mutate(payloads);
+    }
+
+    setEditOpen(false);
+  };
+
+  const handleEditDelete = (ids: string[]) => {
+    for (const id of ids) {
+      deleteBudget.mutate(id);
+    }
+  };
+
   return (
     <main className="flex flex-col gap-4 pb-4">
       {/* Month stepper header */}
@@ -169,18 +207,26 @@ export default function BudgetPage() {
           <BudgetHero categories={cats} year={year} month={month} />
           <BudgetPace categories={cats} year={year} month={month} />
 
-          {/* Section title + view toggle */}
+          {/* Section title + edit button */}
           <div className="mt-2 flex items-center justify-between px-5">
             <h2 className="text-fg-2 text-[11px] font-semibold tracking-[0.06em] uppercase">
               Categories
             </h2>
-            <div className="bg-bg-1 border-line flex items-center gap-0.5 rounded-sm border p-[3px]">
-              <button className="bg-bg-3 text-fg-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-xs">
-                <Tag size={12} strokeWidth={1.75} />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setEditOpen(true)}
+                className="text-[12px] text-brand flex items-center gap-1 cursor-pointer hover:text-brand-hi"
+              >
+                <Pencil size={12} strokeWidth={1.75} /> Edit
               </button>
-              <button className="text-fg-2 hover:text-fg-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-xs">
-                <BarChart3 size={12} strokeWidth={1.75} />
-              </button>
+              <div className="bg-bg-1 border-line flex items-center gap-0.5 rounded-sm border p-[3px]">
+                <button className="bg-bg-3 text-fg-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-xs">
+                  <Tag size={12} strokeWidth={1.75} />
+                </button>
+                <button className="text-fg-2 hover:text-fg-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-xs">
+                  <BarChart3 size={12} strokeWidth={1.75} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -213,7 +259,10 @@ export default function BudgetPage() {
           <BudgetInsight month={month} />
 
           {/* Add category CTA */}
-          <button className="border-line text-fg-1 hover:bg-bg-1 hover:border-brand mx-4 flex h-14 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed text-[13px] transition-colors">
+          <button
+            onClick={() => setEditOpen(true)}
+            className="border-line text-fg-1 hover:bg-bg-1 hover:border-brand mx-4 flex h-14 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed text-[13px] transition-colors"
+          >
             <Plus size={16} strokeWidth={1.75} />
             Add another category
           </button>
@@ -239,6 +288,17 @@ export default function BudgetPage() {
         month={month}
         onSave={handleSave}
       />
+      {cats && (
+        <EditBudgetDrawer
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          year={year}
+          month={month}
+          categories={cats}
+          onSave={handleEditSave}
+          onDelete={handleEditDelete}
+        />
+      )}
     </main>
   );
 }

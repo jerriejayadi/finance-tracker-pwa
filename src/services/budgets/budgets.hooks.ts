@@ -35,13 +35,13 @@ type UseCreateBudgetsParams = {
 export const useCreateBudgets = ({ mutationConfig }: UseCreateBudgetsParams = {}) => {
   const queryClient = useQueryClient();
   return useMutation({
+    ...mutationConfig,
     mutationFn: (payloads: CreateBudgetPayload[]) =>
       budgetsService.createBudgets(payloads),
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
       mutationConfig?.onSuccess?.(...args);
     },
-    ...mutationConfig,
   });
 };
 
@@ -54,13 +54,13 @@ type UseUpdateBudgetParams = {
 export const useUpdateBudget = ({ mutationConfig }: UseUpdateBudgetParams = {}) => {
   const queryClient = useQueryClient();
   return useMutation({
+    ...mutationConfig,
     mutationFn: ({ id, ...payload }: { id: string } & UpdateBudgetPayload) =>
       budgetsService.updateBudget(id, payload),
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
       mutationConfig?.onSuccess?.(...args);
     },
-    ...mutationConfig,
   });
 };
 
@@ -71,11 +71,11 @@ type UseDeleteBudgetParams = {
 export const useDeleteBudget = ({ mutationConfig }: UseDeleteBudgetParams = {}) => {
   const queryClient = useQueryClient();
   return useMutation({
+    ...mutationConfig,
     mutationFn: (id: string) => budgetsService.deleteBudget(id),
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
       mutationConfig?.onSuccess?.(...args);
     },
-    ...mutationConfig,
   });
 };
