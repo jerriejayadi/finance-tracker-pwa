@@ -29,6 +29,7 @@ import { useAddTransaction } from "../layout";
 import { useGetTransactions, useDeleteTransactions } from "@/services/transactions/transactions.hooks";
 import { useGetCategories } from "@/services/categories/categories.hooks";
 import { useGetAccounts } from "@/services/accounts/accounts.hooks";
+import { EditTransactionDrawer } from "@/components/transactions/edit-transaction-drawer";
 
 export default function HistoryPage() {
   const openAddTx = useAddTransaction();
@@ -36,6 +37,7 @@ export default function HistoryPage() {
   const [searchQ, setSearchQ] = React.useState("");
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [detailTx, setDetailTx] = React.useState<Transaction | null>(null);
+  const [editTx, setEditTx] = React.useState<Transaction | null>(null);
   const [selectMode, setSelectMode] = React.useState(false);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [filters, setFilters] = React.useState<Filters>(DEFAULT_FILTERS);
@@ -352,6 +354,14 @@ export default function HistoryPage() {
         }}
         tx={detailTx}
         onDelete={(id) => deleteTransactions.mutate([id])}
+        onEdit={(tx) => setEditTx(tx)}
+      />
+      <EditTransactionDrawer
+        open={!!editTx}
+        onOpenChange={(open) => {
+          if (!open) setEditTx(null);
+        }}
+        transaction={editTx}
       />
     </main>
   );

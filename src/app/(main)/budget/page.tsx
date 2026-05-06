@@ -26,6 +26,7 @@ import {
 import * as React from "react";
 import { useGetBudgets, useCreateBudgets, useUpdateBudget, useDeleteBudget } from "@/services/budgets/budgets.hooks";
 import { useGetCategories } from "@/services/categories/categories.hooks";
+import { useGetProfile } from "@/services/profile/profile.hooks";
 
 function pctOf(spent: number, budget: number): number {
   if (budget <= 0) return 0;
@@ -41,6 +42,7 @@ export default function BudgetPage() {
   const [filter, setFilter] = React.useState<FilterType>("all");
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [copyFromPrev, setCopyFromPrev] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
 
   const key = monthKey(year, month);
@@ -54,6 +56,8 @@ export default function BudgetPage() {
   }
   const prevKey = monthKey(py, pm);
 
+  const { data: profile } = useGetProfile();
+  const currency = profile?.currency_preference ?? "IDR";
   const { data: budgetData, isLoading } = useGetBudgets({ monthYear: key });
   const { data: prevBudgetData } = useGetBudgets({ monthYear: prevKey });
   const { data: categories = [] } = useGetCategories();
@@ -125,6 +129,7 @@ export default function BudgetPage() {
         category: r.name,
         category_id: cat?.id,
         planned_amount: r.budget,
+        currency,
       };
     });
     createBudgets.mutate(payloads);
@@ -148,6 +153,7 @@ export default function BudgetPage() {
           category: r.name,
           category_id: cat?.id,
           planned_amount: r.budget,
+          currency,
         };
       });
       createBudgets.mutate(payloads);
@@ -200,7 +206,14 @@ export default function BudgetPage() {
           year={year}
           month={month}
           previousCategories={previousCats}
-          onCreate={() => setCreateOpen(true)}
+          onCreate={() => {
+            setCopyFromPrev(false);
+            setCreateOpen(true);
+          }}
+          onCopyFromLastMonth={() => {
+            setCopyFromPrev(true);
+            setCreateOpen(true);
+          }}
         />
       ) : !isLoading && cats ? (
         <>
@@ -287,6 +300,7 @@ export default function BudgetPage() {
         year={year}
         month={month}
         onSave={handleSave}
+        initialCategories={copyFromPrev ? previousCats : null}
       />
       {cats && (
         <EditBudgetDrawer

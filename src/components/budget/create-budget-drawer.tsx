@@ -24,6 +24,7 @@ interface CreateBudgetDrawerProps {
   year: number;
   month: number;
   onSave: (rows: BudgetCategory[]) => void;
+  initialCategories?: BudgetCategory[] | null;
 }
 
 export function CreateBudgetDrawer({
@@ -32,6 +33,7 @@ export function CreateBudgetDrawer({
   year,
   month,
   onSave,
+  initialCategories,
 }: CreateBudgetDrawerProps) {
   const [step, setStep] = React.useState(1);
   const [income, setIncome] = React.useState(15_000_000);
@@ -54,18 +56,31 @@ export function CreateBudgetDrawer({
     if (open) {
       setStep(1);
       setIncome(15_000_000);
-      setRows(
-        DEFAULT_CATEGORY_TEMPLATE.map((c) => ({
-          ...c,
-          budget: c.suggested,
-          enabled: true,
-        }))
-      );
+      if (initialCategories && initialCategories.length > 0) {
+        setRows(
+          initialCategories.map((c) => ({
+            id: c.id,
+            name: c.name,
+            icon: c.icon,
+            suggested: c.budget,
+            budget: c.budget,
+            enabled: true,
+          }))
+        );
+      } else {
+        setRows(
+          DEFAULT_CATEGORY_TEMPLATE.map((c) => ({
+            ...c,
+            budget: c.suggested,
+            enabled: true,
+          }))
+        );
+      }
       setRecurring(true);
       setAddingCat(false);
       setEditingId(null);
     }
-  }, [open]);
+  }, [open, initialCategories]);
 
   const totalAllocated = rows
     .filter((r) => r.enabled)

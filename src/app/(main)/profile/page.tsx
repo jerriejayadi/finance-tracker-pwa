@@ -1,31 +1,27 @@
 "use client";
 
-import * as React from "react";
-import {
-  Crown,
-  User,
-  Globe,
-  Calendar,
-  Sun,
-  Moon,
-  Bell,
-  Wallet,
-  Shield,
-  Download,
-  Database,
-  Tag,
-  HelpCircle,
-  Star,
-  LogOut,
-  Edit,
-} from "lucide-react";
-import { useSignOutMutation } from "@/services/auth/auth.hooks";
-import { useTheme } from "next-themes";
-import { useGetProfile } from "@/services/profile/profile.hooks";
+import { AccountsSection } from "@/components/profile/accounts-section";
 import { Avatar } from "@/components/ui/avatar";
 import { SettingsGroup, SettingsRow } from "@/components/ui/settings-group";
 import { Toggle } from "@/components/ui/toggle";
-import { AccountsSection } from "@/components/profile/accounts-section";
+import { useSignOutMutation } from "@/services/auth/auth.hooks";
+import { useGetProfile } from "@/services/profile/profile.hooks";
+import {
+  Bell,
+  Calendar,
+  Crown,
+  Edit,
+  Globe,
+  HelpCircle,
+  LogOut,
+  Moon,
+  Star,
+  Sun,
+  User,
+  Wallet,
+} from "lucide-react";
+import { useTheme } from "next-themes";
+import * as React from "react";
 
 function getCurrencySymbol(code: string): string {
   try {
@@ -82,57 +78,57 @@ export default function ProfilePage() {
         <div className="text-[17px] font-semibold tracking-[-0.005em]">
           Profile
         </div>
-        <button className="w-9 h-9 rounded-full bg-bg-1 border border-line flex items-center justify-center text-fg-1 cursor-pointer hover:bg-bg-2 transition-colors">
+        {/* <button className="w-9 h-9 rounded-full bg-bg-1 border border-line flex items-center justify-center text-fg-1 cursor-pointer hover:bg-bg-2 transition-colors">
           <Edit size={16} strokeWidth={1.75} />
-        </button>
+        </button> */}
       </div>
 
       {/* Profile card */}
-      <div className="mx-4 p-[22px_20px] bg-bg-1 border border-line rounded-lg flex items-center gap-4 relative overflow-hidden">
+      <div className="bg-bg-1 border-line relative mx-4 flex items-center gap-4 overflow-hidden rounded-lg border p-[22px_20px]">
         {/* Brand glow */}
-        <div className="absolute -top-10 -right-5 w-[140px] h-[140px] rounded-full bg-brand-soft blur-[40px] pointer-events-none" />
+        <div className="bg-brand-soft pointer-events-none absolute -top-10 -right-5 h-[140px] w-[140px] rounded-full blur-[40px]" />
 
         <Avatar size="lg" variant="brand" className="relative z-[1]">
           {initials}
         </Avatar>
-        <div className="flex-1 min-w-0 relative z-[1]">
+        <div className="relative z-[1] min-w-0 flex-1">
           <div className="text-[17px] font-semibold tracking-[-0.01em]">
             {displayName}
           </div>
-          <div className="text-[13px] text-fg-2 font-mono mt-0.5 truncate">
+          <div className="text-fg-2 mt-0.5 truncate font-mono text-[13px]">
             {email}
           </div>
         </div>
-        <button className="w-9 h-9 rounded-full bg-bg-2 border border-line flex items-center justify-center text-fg-1 cursor-pointer hover:bg-bg-3 transition-colors flex-shrink-0 relative z-[1]">
+        <button className="bg-bg-2 border-line text-fg-1 hover:bg-bg-3 relative z-[1] flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors">
           <Edit size={16} strokeWidth={1.75} />
         </button>
       </div>
 
       {/* Stats strip */}
-      <div className="mx-4 grid grid-cols-3 border border-line bg-bg-1 rounded-md overflow-hidden">
-        <div className="p-3.5 border-r border-line">
-          <div className="text-[10px] text-fg-2 uppercase tracking-[0.06em]">
+      <div className="border-line bg-bg-1 mx-4 grid grid-cols-2 overflow-hidden rounded-md border">
+        <div className="border-line border-r p-3.5">
+          <div className="text-fg-2 text-[10px] tracking-[0.06em] uppercase">
             Tracked
           </div>
-          <div className="font-mono tabular-nums text-[18px] font-medium mt-1 tracking-[-0.01em]">
+          <div className="mt-1 font-mono text-[18px] font-medium tracking-[-0.01em] tabular-nums">
             247
           </div>
-          <div className="text-[11px] text-fg-2 font-mono mt-0.5">
+          <div className="text-fg-2 mt-0.5 font-mono text-[11px]">
             transactions
           </div>
         </div>
-        <div className="p-3.5 border-r border-line">
-          <div className="text-[10px] text-fg-2 uppercase tracking-[0.06em]">
+        <div className="border-line border-r p-3.5">
+          <div className="text-fg-2 text-[10px] tracking-[0.06em] uppercase">
             Saved
           </div>
-          <div className="font-mono tabular-nums text-[18px] font-medium mt-1 tracking-[-0.01em] text-pos">
+          <div className="text-pos mt-1 font-mono text-[18px] font-medium tracking-[-0.01em] tabular-nums">
             + 18%
           </div>
-          <div className="text-[11px] text-fg-2 font-mono mt-0.5">
+          <div className="text-fg-2 mt-0.5 font-mono text-[11px]">
             vs last yr
           </div>
         </div>
-        <div className="p-3.5">
+        {/* <div className="p-3.5">
           <div className="text-[10px] text-fg-2 uppercase tracking-[0.06em]">
             Streak
           </div>
@@ -140,34 +136,34 @@ export default function ProfilePage() {
             42
           </div>
           <div className="text-[11px] text-fg-2 font-mono mt-0.5">days</div>
-        </div>
+        </div> */}
       </div>
 
       {/* Settings sections */}
-      <div className="px-4 flex flex-col gap-3.5 mt-1">
+      <div className="mt-1 flex flex-col gap-3.5 px-4">
         {/* Account */}
-        <SettingsGroup label="Account">
+        <SettingsGroup label="">
           <SettingsRow
             icon={<Crown size={16} strokeWidth={1.75} />}
             iconClassName="bg-brand-soft text-brand border-transparent"
             label="FinTrack Pro"
-            description="Unlock budgets, exports, sync"
+            description="Unlock Bulk Import, AI Chatbots, and more"
           />
-          <SettingsRow
+          {/* <SettingsRow
             icon={<User size={16} strokeWidth={1.75} />}
             label="Personal info"
             value={shortName}
-          />
+          /> */}
           <SettingsRow
             icon={<Globe size={16} strokeWidth={1.75} />}
             label="Currency"
             value={`${currencyCode} · ${currencySymbol}`}
           />
-          <SettingsRow
+          {/* <SettingsRow
             icon={<Calendar size={16} strokeWidth={1.75} />}
             label="First day of week"
             value={firstDayLabel}
-          />
+          /> */}
         </SettingsGroup>
 
         {/* Accounts */}
@@ -179,9 +175,7 @@ export default function ProfilePage() {
             icon={<Sun size={16} strokeWidth={1.75} />}
             label="Appearance"
             trailing={
-              mounted ? (
-                <ThemeToggle theme={theme} setTheme={setTheme} />
-              ) : null
+              mounted ? <ThemeToggle theme={theme} setTheme={setTheme} /> : null
             }
           />
           <SettingsRow
@@ -189,9 +183,7 @@ export default function ProfilePage() {
             label="Notifications"
             description="Daily summary at 8 PM"
             onClick={() => setNotifs(!notifs)}
-            trailing={
-              <Toggle checked={notifs} onCheckedChange={setNotifs} />
-            }
+            trailing={<Toggle checked={notifs} onCheckedChange={setNotifs} />}
           />
           <SettingsRow
             icon={<Wallet size={16} strokeWidth={1.75} />}
@@ -205,18 +197,18 @@ export default function ProfilePage() {
               />
             }
           />
-          <SettingsRow
+          {/* <SettingsRow
             icon={<Shield size={16} strokeWidth={1.75} />}
             label="Biometric unlock"
             onClick={() => setBiometric(!biometric)}
             trailing={
               <Toggle checked={biometric} onCheckedChange={setBiometric} />
             }
-          />
+          /> */}
         </SettingsGroup>
 
         {/* Data */}
-        <SettingsGroup label="Data">
+        {/* <SettingsGroup label="Data">
           <SettingsRow
             icon={<Download size={16} strokeWidth={1.75} />}
             label="Export data"
@@ -233,7 +225,7 @@ export default function ProfilePage() {
             label="Categories & tags"
             value="14"
           />
-        </SettingsGroup>
+        </SettingsGroup> */}
 
         {/* Support */}
         <SettingsGroup label="Support">
@@ -248,9 +240,7 @@ export default function ProfilePage() {
           <SettingsRow
             icon={<LogOut size={16} strokeWidth={1.75} />}
             iconClassName="bg-neg-soft text-neg border-transparent"
-            label={
-              signOutMutation.isPending ? "Signing out..." : "Sign out"
-            }
+            label={signOutMutation.isPending ? "Signing out..." : "Sign out"}
             danger
             onClick={handleSignOut}
             trailing={<span />}
@@ -258,7 +248,7 @@ export default function ProfilePage() {
         </SettingsGroup>
 
         {/* App version */}
-        <div className="text-center font-mono text-[11px] text-fg-2 py-6">
+        <div className="text-fg-2 py-6 text-center font-mono text-[11px]">
           FinTrack · v2.4.0 (build 218)
         </div>
       </div>
@@ -274,13 +264,13 @@ function ThemeToggle({
   setTheme: (t: string) => void;
 }) {
   return (
-    <div className="inline-flex p-[3px] bg-bg-2 border border-line rounded-full">
+    <div className="bg-bg-2 border-line inline-flex rounded-full border p-[3px]">
       <button
         onClick={(e) => {
           e.stopPropagation();
           setTheme("dark");
         }}
-        className={`w-[30px] h-[26px] flex items-center justify-center rounded-full cursor-pointer transition-all ${
+        className={`flex h-[26px] w-[30px] cursor-pointer items-center justify-center rounded-full transition-all ${
           theme === "dark" ? "bg-bg-0 text-fg-0" : "text-fg-2"
         }`}
       >
@@ -291,7 +281,7 @@ function ThemeToggle({
           e.stopPropagation();
           setTheme("light");
         }}
-        className={`w-[30px] h-[26px] flex items-center justify-center rounded-full cursor-pointer transition-all ${
+        className={`flex h-[26px] w-[30px] cursor-pointer items-center justify-center rounded-full transition-all ${
           theme === "light" ? "bg-bg-0 text-fg-0" : "text-fg-2"
         }`}
       >

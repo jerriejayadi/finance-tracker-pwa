@@ -76,13 +76,13 @@ export default function DashboardLayout({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button className="w-9 h-9 rounded-full bg-bg-1 border border-line flex items-center justify-center text-fg-1 cursor-pointer hover:bg-bg-2 transition-colors">
+          {/* <button className="w-9 h-9 rounded-full bg-bg-1 border border-line flex items-center justify-center text-fg-1 cursor-pointer hover:bg-bg-2 transition-colors">
             <Search size={18} strokeWidth={1.75} />
-          </button>
-          <button className="relative w-9 h-9 rounded-full bg-bg-1 border border-line flex items-center justify-center text-fg-1 cursor-pointer hover:bg-bg-2 transition-colors">
+          </button> */}
+          {/* <button className="relative w-9 h-9 rounded-full bg-bg-1 border border-line flex items-center justify-center text-fg-1 cursor-pointer hover:bg-bg-2 transition-colors">
             <Bell size={18} strokeWidth={1.75} />
             <span className="absolute top-2 right-2 w-[7px] h-[7px] rounded-full bg-brand border-2 border-bg-0" />
-          </button>
+          </button> */}
           <Link href="/profile">
             <Avatar size="sm">{initials}</Avatar>
           </Link>

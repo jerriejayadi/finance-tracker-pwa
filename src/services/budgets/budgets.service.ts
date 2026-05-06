@@ -7,6 +7,7 @@ export type Budget = {
   category: string;
   category_id: string | null;
   planned_amount: number;
+  currency: string;
   created_at: string;
   updated_at: string;
   // Joined
@@ -24,12 +25,14 @@ export type CreateBudgetPayload = {
   category: string;
   category_id?: string;
   planned_amount: number;
+  currency: string;
 };
 
 export type UpdateBudgetPayload = {
   planned_amount?: number;
   category?: string;
   category_id?: string;
+  currency?: string;
 };
 
 export const budgetsService = {

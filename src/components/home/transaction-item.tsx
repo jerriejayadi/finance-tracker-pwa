@@ -11,6 +11,7 @@ interface TransactionItemProps {
   icon?: string;
   recurring?: boolean;
   className?: string;
+  onClick?: () => void;
 }
 
 export function TransactionItem({
@@ -22,12 +23,14 @@ export function TransactionItem({
   icon,
   recurring,
   className,
+  onClick,
 }: TransactionItemProps) {
   const isIncome = type === "income";
   const sign = isIncome ? "+" : "\u2212";
 
   return (
     <div
+      onClick={onClick}
       className={cn(
         "grid grid-cols-[40px_1fr_auto] gap-3 items-center px-3 py-2.5 rounded-sm cursor-pointer hover:bg-bg-1 transition-colors",
         className

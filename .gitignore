@@ -42,3 +42,11 @@ yarn-error.log*
 next-env.d.ts
 
 certificates
+
+# PWA service worker build artifacts
+/public/sw.js
+/public/sw.js.map
+/public/workbox-*.js
+/public/workbox-*.js.map
+/public/worker-*.js
+/public/swe-worker-*.js

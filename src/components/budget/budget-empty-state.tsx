@@ -11,6 +11,7 @@ interface BudgetEmptyStateProps {
   month: number;
   previousCategories: BudgetCategory[] | null;
   onCreate: () => void;
+  onCopyFromLastMonth?: () => void;
 }
 
 export function BudgetEmptyState({
@@ -18,6 +19,7 @@ export function BudgetEmptyState({
   month,
   previousCategories,
   onCreate,
+  onCopyFromLastMonth,
 }: BudgetEmptyStateProps) {
   const prevTotal = previousCategories
     ? previousCategories.reduce((a, c) => a + c.budget, 0)
@@ -123,7 +125,7 @@ export function BudgetEmptyState({
             </div>
           </div>
           <button
-            onClick={onCreate}
+            onClick={onCopyFromLastMonth ?? onCreate}
             className="h-8 px-3 rounded-sm bg-bg-2 border border-line text-[12px] text-fg-0 font-medium flex items-center gap-1.5 cursor-pointer hover:bg-bg-3 transition-colors"
           >
             <Repeat size={13} strokeWidth={1.75} />

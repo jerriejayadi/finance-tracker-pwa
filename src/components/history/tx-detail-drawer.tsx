@@ -14,6 +14,7 @@ interface TxDetailDrawerProps {
   onOpenChange: (open: boolean) => void;
   tx: Transaction | null;
   onDelete?: (id: string) => void;
+  onEdit?: (tx: Transaction) => void;
 }
 
 export function TxDetailDrawer({
@@ -21,6 +22,7 @@ export function TxDetailDrawer({
   onOpenChange,
   tx,
   onDelete,
+  onEdit,
 }: TxDetailDrawerProps) {
   if (!tx) return null;
 
@@ -83,7 +85,14 @@ export function TxDetailDrawer({
 
         {/* Actions */}
         <div className="grid grid-cols-2 gap-2 mx-5 mb-4">
-          <ActionButton icon={<Pencil size={14} />} label="Edit" />
+          <ActionButton
+            icon={<Pencil size={14} />}
+            label="Edit"
+            onClick={() => {
+              onEdit?.(tx);
+              onOpenChange(false);
+            }}
+          />
           <ActionButton icon={<Tag size={14} />} label="Recategorize" />
           <ActionButton icon={<Repeat size={14} />} label="Duplicate" />
           <ActionButton

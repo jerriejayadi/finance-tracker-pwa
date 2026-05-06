@@ -2,6 +2,7 @@
 
 import { TransactionItem } from "@/components/home/transaction-item";
 import { Chip } from "@/components/ui/chip";
+import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { fmtIDR, fmtIDRShort } from "@/lib/format";
 import { useGetAccountBalances } from "@/services/accounts/accounts.hooks";
@@ -28,6 +29,8 @@ import {
 import Link from "next/link";
 import * as React from "react";
 import { useAddTransaction } from "./layout";
+import { EditTransactionDrawer } from "@/components/transactions/edit-transaction-drawer";
+import type { Transaction } from "@/services/transactions/transactions.service";
 
 const PERIOD_OPTIONS = [
   { value: "Day", label: "Day" },
@@ -55,6 +58,7 @@ export default function DashboardPage() {
   const openAddTx = useAddTransaction();
   const [period, setPeriod] = React.useState("Month");
   const [chip, setChip] = React.useState("All");
+  const [editTx, setEditTx] = React.useState<Transaction | null>(null);
 
   // Compute date range
   const { dateFrom, dateTo } = React.useMemo(() => {
@@ -139,7 +143,9 @@ export default function DashboardPage() {
   return (
     <main className="flex flex-col gap-4">
       {/* Balance hero */}
+      
       <section className="bg-bg-1 border-line relative mx-4 overflow-hidden rounded-lg border p-[22px_22px_20px]">
+
         {/* Brand glow */}
         <div className="bg-brand-soft pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full blur-[40px]" />
 
@@ -272,12 +278,20 @@ export default function DashboardPage() {
                 type={tx.type === "Income" ? "income" : "expense"}
                 icon={tx.category_icon || ""}
                 recurring={!!tx.recurring_transaction_id}
+                onClick={() => setEditTx(tx)}
               />
             ))}
           </React.Fragment>
         ))}
       </div>
-
+        {/* <Input type="text" className="sticky bottom-20" /> */}
+      <EditTransactionDrawer
+        open={!!editTx}
+        onOpenChange={(open) => {
+          if (!open) setEditTx(null);
+        }}
+        transaction={editTx}
+      />
       <div className="h-5" />
     </main>
   );

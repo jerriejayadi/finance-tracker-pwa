@@ -9,6 +9,7 @@ export type Transaction = {
   type: "Income" | "Expense" | "Transfer";
   category: string;
   amount: number;
+  currency: string;
   date: string;
   merchant: string | null;
   note: string | null;
@@ -25,6 +26,20 @@ export type CreateTransactionPayload = {
   type: "Income" | "Expense" | "Transfer";
   category: string;
   amount: number;
+  currency: string;
+  date: string;
+  merchant?: string;
+  note?: string;
+};
+
+export type UpdateTransactionPayload = {
+  id: string;
+  account_id: string;
+  category_id?: string;
+  type: "Income" | "Expense" | "Transfer";
+  category: string;
+  amount: number;
+  currency?: string;
   date: string;
   merchant?: string;
   note?: string;
@@ -135,6 +150,19 @@ export const transactionsService = {
     const { data, error } = await supabase
       .from("transactions")
       .insert({ ...payload, user_id: authData.user.id })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  updateTransaction: async (payload: UpdateTransactionPayload): Promise<Transaction> => {
+    const { id, ...fields } = payload;
+    const { data, error } = await supabase
+      .from("transactions")
+      .update(fields)
+      .eq("id", id)
       .select()
       .single();
 

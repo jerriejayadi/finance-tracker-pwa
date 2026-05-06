@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   transactionsService,
   CreateTransactionPayload,
+  UpdateTransactionPayload,
   TransactionFilters,
 } from "./transactions.service";
 import { QueryConfig, MutationConfig } from "@/lib/query-client";
@@ -68,6 +69,26 @@ export const useCreateTransaction = ({
     ...mutationConfig,
     mutationFn: (payload: CreateTransactionPayload) =>
       transactionsService.createTransaction(payload),
+    onSuccess: (...args) => {
+      queryClient.invalidateQueries({ queryKey: transactionKeys.all });
+      queryClient.invalidateQueries({ queryKey: accountKeys.balances });
+      mutationConfig?.onSuccess?.(...args);
+    },
+  });
+};
+
+type UseUpdateTransactionParams = {
+  mutationConfig?: MutationConfig<typeof transactionsService.updateTransaction>;
+};
+
+export const useUpdateTransaction = ({
+  mutationConfig,
+}: UseUpdateTransactionParams = {}) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    ...mutationConfig,
+    mutationFn: (payload: UpdateTransactionPayload) =>
+      transactionsService.updateTransaction(payload),
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       queryClient.invalidateQueries({ queryKey: accountKeys.balances });

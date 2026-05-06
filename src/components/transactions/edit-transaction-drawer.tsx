@@ -32,11 +32,12 @@ import {
 } from "lucide-react";
 import { useGetCategories } from "@/services/categories/categories.hooks";
 import { useGetAccountBalances } from "@/services/accounts/accounts.hooks";
-import { useCreateTransaction } from "@/services/transactions/transactions.hooks";
+import { useUpdateTransaction } from "@/services/transactions/transactions.hooks";
 import { useGetBudgets } from "@/services/budgets/budgets.hooks";
 import { useGetProfile } from "@/services/profile/profile.hooks";
 import { monthKey } from "@/components/budget/budget-constants";
 import type { AccountBalance } from "@/services/accounts/accounts.service";
+import type { Transaction } from "@/components/history/history-constants";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -72,7 +73,6 @@ function DatePickerView({
 
   return (
     <>
-      {/* Header */}
       <div className="flex items-center justify-between mb-4 gap-2 px-5">
         <Button
           variant="secondary"
@@ -89,7 +89,6 @@ function DatePickerView({
       </div>
 
       <div className="overflow-y-auto flex-1 px-5">
-        {/* Presets */}
         <div className="grid grid-cols-3 gap-2 mb-3.5">
           {presets.map((p) => {
             const sel = date && isSameDay(date, p.date);
@@ -120,7 +119,6 @@ function DatePickerView({
           })}
         </div>
 
-        {/* Calendar */}
         <div className="border border-line bg-bg-0 rounded-md p-2 mb-4">
           <Calendar
             captionLayout="dropdown-buttons"
@@ -155,7 +153,6 @@ function DatePickerView({
         </div>
       </div>
 
-      {/* Footer */}
       <DrawerFooter className="grid grid-cols-[1fr_2fr] gap-2 px-5">
         <Button variant="secondary" onClick={onBack}>
           Cancel
@@ -190,7 +187,6 @@ function AccountPickerView({
 
   return (
     <>
-      {/* Header */}
       <div className="flex items-center justify-between mb-4 gap-2 px-5">
         <Button
           variant="secondary"
@@ -207,7 +203,6 @@ function AccountPickerView({
       </div>
 
       <div className="overflow-y-auto flex-1 px-5">
-        {/* Search */}
         <div className="mb-3">
           <Input
             icon={<Search size={16} strokeWidth={1.75} />}
@@ -218,7 +213,6 @@ function AccountPickerView({
           />
         </div>
 
-        {/* Account list */}
         <div className="flex flex-col gap-2 mb-4">
           {filtered.map((a) => {
             const sel = value === a.account_id;
@@ -234,7 +228,6 @@ function AccountPickerView({
                     : "border-line bg-bg-0 hover:bg-bg-2",
                 )}
               >
-                {/* Icon */}
                 <div
                   className={cn(
                     "w-10 h-10 rounded-[10px] bg-bg-2 border border-line flex items-center justify-center text-[18px]",
@@ -243,8 +236,6 @@ function AccountPickerView({
                 >
                   {a.icon || "🏦"}
                 </div>
-
-                {/* Name + type */}
                 <div className="min-w-0">
                   <div className="text-[14px] font-medium text-fg-0">
                     {a.name}
@@ -253,8 +244,6 @@ function AccountPickerView({
                     {a.type}
                   </div>
                 </div>
-
-                {/* Balance */}
                 <div className="text-right">
                   <div
                     className={cn(
@@ -268,8 +257,6 @@ function AccountPickerView({
                     Balance
                   </div>
                 </div>
-
-                {/* Radio */}
                 <div
                   className={cn(
                     "w-[22px] h-[22px] rounded-full border-[1.5px] flex items-center justify-center flex-shrink-0",
@@ -284,7 +271,6 @@ function AccountPickerView({
             );
           })}
 
-          {/* Add new account */}
           <button className="grid grid-cols-[40px_1fr_16px] gap-3 items-center p-3 border border-dashed border-line rounded-md cursor-pointer hover:bg-bg-2 transition-colors text-left">
             <div className="w-10 h-10 rounded-[10px] bg-bg-2 border border-line flex items-center justify-center text-fg-1">
               <Plus size={16} strokeWidth={1.75} />
@@ -302,7 +288,6 @@ function AccountPickerView({
         </div>
       </div>
 
-      {/* Footer */}
       <DrawerFooter className="grid grid-cols-[1fr_2fr] gap-2 px-5">
         <Button variant="secondary" onClick={onBack}>
           Cancel
@@ -314,21 +299,21 @@ function AccountPickerView({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Main Add Transaction Drawer                                        */
+/*  Main Edit Transaction Drawer                                       */
 /* ------------------------------------------------------------------ */
 
-interface AddTransactionDrawerProps {
+interface EditTransactionDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultType?: TxType;
+  transaction: Transaction | null;
 }
 
-export function AddTransactionDrawer({
+export function EditTransactionDrawer({
   open,
   onOpenChange,
-  defaultType = "expense",
-}: AddTransactionDrawerProps) {
-  const [type, setType] = React.useState<TxType>(defaultType);
+  transaction,
+}: EditTransactionDrawerProps) {
+  const [type, setType] = React.useState<TxType>("expense");
   const [view, setView] = React.useState<ViewState>("main");
 
   const [amount, setAmount] = React.useState(0);
@@ -357,7 +342,7 @@ export function AddTransactionDrawer({
   const now = new Date();
   const currentMonthKey = monthKey(now.getFullYear(), now.getMonth());
   const { data: budgets = [] } = useGetBudgets({ monthYear: currentMonthKey });
-  const createTransaction = useCreateTransaction({
+  const updateTransaction = useUpdateTransaction({
     mutationConfig: {
       onSuccess: () => {
         onOpenChange(false);
@@ -381,28 +366,26 @@ export function AddTransactionDrawer({
     [accountBalances],
   );
 
-  // Set default account when loaded
+  // Populate form when transaction changes
   React.useEffect(() => {
-    if (activeAccounts.length > 0 && !acctKey) {
-      const first = activeAccounts[0];
-      setAcctKey(first.account_id);
-      setAcctLabel(first.name);
-    }
-  }, [activeAccounts, acctKey]);
-
-  // Set default category when loaded
-  React.useEffect(() => {
-    if (displayCategories.length > 0 && !cat) {
-      setCat(displayCategories[0].id);
-    }
-  }, [displayCategories, cat]);
-
-  React.useEffect(() => {
-    if (open) {
-      setType(defaultType);
+    if (open && transaction) {
+      const txType: TxType =
+        transaction.type === "Income"
+          ? "income"
+          : transaction.type === "Transfer"
+            ? "transfer"
+            : "expense";
+      setType(txType);
+      setAmount(Number(transaction.amount));
+      setCat(transaction.category_id || "");
+      setNote(transaction.note || transaction.merchant || "");
+      setRecurring(!!transaction.recurring_transaction_id);
+      setDate(new Date(transaction.date + "T00:00:00"));
+      setAcctKey(transaction.account_id);
+      setAcctLabel(transaction.account_name || "");
       setView("main");
     }
-  }, [open, defaultType]);
+  }, [open, transaction]);
 
   // Resize drawer to visual viewport when mobile keyboard opens
   const [vvHeight, setVvHeight] = React.useState<number | null>(null);
@@ -414,11 +397,8 @@ export function AddTransactionDrawer({
     const vv = window.visualViewport;
     if (!vv) return;
     const onResize = () => {
-      // When keyboard opens, visualViewport.height shrinks
       const isKeyboardOpen = vv.height < window.innerHeight - 50;
       setVvHeight(isKeyboardOpen ? vv.height : null);
-
-      // Scroll focused input into view
       const el = document.activeElement;
       if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
         requestAnimationFrame(() => {
@@ -434,7 +414,6 @@ export function AddTransactionDrawer({
     };
   }, [open]);
 
-  // Formatter: splits amount into whole (with commas) and cents (always 2 digits)
   const formatWhole = (n: number) => {
     const str = String(Math.trunc(n));
     return str.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -458,8 +437,10 @@ export function AddTransactionDrawer({
   const segIdx = type === "expense" ? 0 : type === "income" ? 1 : 2;
 
   const handleSave = () => {
+    if (!transaction) return;
     const selectedCategory = categories.find((c) => c.id === cat);
-    createTransaction.mutate({
+    updateTransaction.mutate({
+      id: transaction.id,
       account_id: acctKey,
       category_id: cat,
       type: type === "expense" ? "Expense" : type === "income" ? "Income" : "Transfer",
@@ -505,7 +486,7 @@ export function AddTransactionDrawer({
           <>
             <div className="overflow-y-auto flex-1 px-5">
               <DrawerHeader className="px-0 text-left">
-                <DrawerTitle>Add transaction</DrawerTitle>
+                <DrawerTitle>Edit transaction</DrawerTitle>
                 <DrawerDescription>
                   All amounts are saved in IDR.
                 </DrawerDescription>
@@ -553,7 +534,7 @@ export function AddTransactionDrawer({
               {/* Amount display */}
               <div
                 className="relative flex items-baseline justify-center gap-1 py-4 pb-3 font-mono tabular-nums cursor-text group"
-                onClick={() => document.getElementById("amount-input")?.focus()}
+                onClick={() => document.getElementById("edit-amount-input")?.focus()}
               >
                 <span className="text-[28px] text-fg-2">Rp</span>
                 <span
@@ -576,7 +557,7 @@ export function AddTransactionDrawer({
                   )}
                 </span>
                 <input
-                  id="amount-input"
+                  id="edit-amount-input"
                   type="text"
                   inputMode="decimal"
                   className="absolute inset-0 opacity-0 w-full h-full cursor-text"
@@ -741,9 +722,9 @@ export function AddTransactionDrawer({
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={amount === 0 || !acctKey || createTransaction.isPending}
+                disabled={amount === 0 || !acctKey || updateTransaction.isPending}
               >
-                {createTransaction.isPending ? "Saving..." : "Save transaction"}
+                {updateTransaction.isPending ? "Saving..." : "Save changes"}
               </Button>
             </DrawerFooter>
           </>
