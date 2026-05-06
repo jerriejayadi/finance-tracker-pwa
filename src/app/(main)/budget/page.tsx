@@ -2,7 +2,6 @@
 
 import { BudgetCategoryList } from "@/components/budget/budget-category-list";
 import {
-  MOCK_BUDGETS,
   monthKey,
   monthLabel,
 } from "@/components/budget/budget-constants";
@@ -23,6 +22,8 @@ import {
   Tag,
 } from "lucide-react";
 import * as React from "react";
+import { useGetBudgets, useCreateBudgets } from "@/services/budgets/budgets.hooks";
+import { useGetCategories } from "@/services/categories/categories.hooks";
 
 function pctOf(spent: number, budget: number): number {
   if (budget <= 0) return 0;
@@ -39,17 +40,9 @@ export default function BudgetPage() {
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
 
-  // Local state for created budgets (will be replaced with Supabase)
-  const [createdBudgets, setCreatedBudgets] = React.useState<
-    Record<string, BudgetCategory[]>
-  >({});
-
   const key = monthKey(year, month);
-  const cats: BudgetCategory[] | null =
-    createdBudgets[key] || MOCK_BUDGETS[key] || null;
-  const isEmpty = !cats || cats.length === 0;
 
-  // Previous month for empty state context
+  // Previous month
   let pm = month - 1,
     py = year;
   if (pm < 0) {
@@ -57,8 +50,43 @@ export default function BudgetPage() {
     py -= 1;
   }
   const prevKey = monthKey(py, pm);
-  const previousCats: BudgetCategory[] | null =
-    createdBudgets[prevKey] || MOCK_BUDGETS[prevKey] || null;
+
+  const { data: budgetData, isLoading } = useGetBudgets({ monthYear: key });
+  const { data: prevBudgetData } = useGetBudgets({ monthYear: prevKey });
+  const { data: categories = [] } = useGetCategories();
+
+  const createBudgets = useCreateBudgets({
+    mutationConfig: {
+      onSuccess: () => setCreateOpen(false),
+    },
+  });
+
+  // Map to BudgetCategory shape for existing components
+  const cats: BudgetCategory[] | null = React.useMemo(() => {
+    if (!budgetData || budgetData.length === 0) return null;
+    return budgetData.map((b) => ({
+      id: b.id,
+      name: b.category_name || b.category,
+      icon: b.category_icon || "",
+      budget: Number(b.planned_amount),
+      spent: b.spent,
+      recent: b.recent,
+    }));
+  }, [budgetData]);
+
+  const previousCats: BudgetCategory[] | null = React.useMemo(() => {
+    if (!prevBudgetData || prevBudgetData.length === 0) return null;
+    return prevBudgetData.map((b) => ({
+      id: b.id,
+      name: b.category_name || b.category,
+      icon: b.category_icon || "",
+      budget: Number(b.planned_amount),
+      spent: b.spent,
+      recent: b.recent,
+    }));
+  }, [prevBudgetData]);
+
+  const isEmpty = !isLoading && (!cats || cats.length === 0);
 
   const stepMonth = (delta: number) => {
     let m = month + delta;
@@ -82,6 +110,19 @@ export default function BudgetPage() {
     if (filter === "active") return cats.filter((c) => c.spent > 0);
     return cats;
   }, [cats, filter]);
+
+  const handleSave = (rows: BudgetCategory[]) => {
+    const payloads = rows.map((r) => {
+      const cat = categories.find((c) => c.name === r.name);
+      return {
+        month_year: key,
+        category: r.name,
+        category_id: cat?.id,
+        planned_amount: r.budget,
+      };
+    });
+    createBudgets.mutate(payloads);
+  };
 
   return (
     <main className="flex flex-col gap-4 pb-4">
@@ -110,14 +151,20 @@ export default function BudgetPage() {
         </div>
       </div>
 
-      {isEmpty ? (
+      {isLoading && (
+        <div className="flex justify-center py-12 text-[13px] text-fg-2">
+          Loading...
+        </div>
+      )}
+
+      {!isLoading && isEmpty ? (
         <BudgetEmptyState
           year={year}
           month={month}
           previousCategories={previousCats}
           onCreate={() => setCreateOpen(true)}
         />
-      ) : (
+      ) : !isLoading && cats ? (
         <>
           <BudgetHero categories={cats} year={year} month={month} />
           <BudgetPace categories={cats} year={year} month={month} />
@@ -171,7 +218,7 @@ export default function BudgetPage() {
             Add another category
           </button>
         </>
-      )}
+      ) : null}
 
       {/* Drawers */}
       <MonthPickerDrawer
@@ -183,17 +230,14 @@ export default function BudgetPage() {
           setYear(y);
           setMonth(m);
         }}
-        createdBudgets={createdBudgets}
+        createdBudgets={{}}
       />
       <CreateBudgetDrawer
         open={createOpen}
         onOpenChange={setCreateOpen}
         year={year}
         month={month}
-        onSave={(rows) => {
-          setCreatedBudgets((prev) => ({ ...prev, [key]: rows }));
-          setCreateOpen(false);
-        }}
+        onSave={handleSave}
       />
     </main>
   );
