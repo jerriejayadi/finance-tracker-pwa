@@ -10,12 +10,9 @@ import {
 } from "@/components/ui/drawer";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
-  CATEGORIES,
-  ACCOUNTS,
   DATE_RANGES,
   DEFAULT_FILTERS,
   type Filters,
-  type DateRangeId,
 } from "./history-constants";
 
 interface HistoryFilterDrawerProps {
@@ -23,6 +20,8 @@ interface HistoryFilterDrawerProps {
   onOpenChange: (open: boolean) => void;
   filters: Filters;
   onApply: (filters: Filters) => void;
+  categories: { id: string; name: string; icon: string }[];
+  accounts: { id: string; name: string }[];
 }
 
 export function HistoryFilterDrawer({
@@ -30,6 +29,8 @@ export function HistoryFilterDrawer({
   onOpenChange,
   filters,
   onApply,
+  categories,
+  accounts,
 }: HistoryFilterDrawerProps) {
   const [draft, setDraft] = React.useState<Filters>(filters);
 
@@ -99,18 +100,18 @@ export function HistoryFilterDrawer({
             meta={draft.cats.length ? String(draft.cats.length) : "All"}
           >
             <div className="flex flex-wrap gap-1.5">
-              {CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <button
-                  key={c}
-                  onClick={() => toggleArray("cats", c)}
+                  key={c.id}
+                  onClick={() => toggleArray("cats", c.name)}
                   className={cn(
                     "h-7 px-3 rounded-full text-[12px] border cursor-pointer transition-colors",
-                    draft.cats.includes(c)
+                    draft.cats.includes(c.name)
                       ? "bg-brand-soft border-brand text-brand font-medium"
                       : "bg-bg-0 border-line text-fg-1 hover:bg-bg-2"
                   )}
                 >
-                  {c}
+                  {c.icon} {c.name}
                 </button>
               ))}
             </div>
@@ -122,18 +123,18 @@ export function HistoryFilterDrawer({
             meta={draft.accts.length ? String(draft.accts.length) : "All"}
           >
             <div className="flex flex-wrap gap-1.5">
-              {ACCOUNTS.map((a) => (
+              {accounts.map((a) => (
                 <button
-                  key={a}
-                  onClick={() => toggleArray("accts", a)}
+                  key={a.id}
+                  onClick={() => toggleArray("accts", a.name)}
                   className={cn(
                     "h-7 px-3 rounded-full text-[12px] border cursor-pointer transition-colors",
-                    draft.accts.includes(a)
+                    draft.accts.includes(a.name)
                       ? "bg-brand-soft border-brand text-brand font-medium"
                       : "bg-bg-0 border-line text-fg-1 hover:bg-bg-2"
                   )}
                 >
-                  {a}
+                  {a.name}
                 </button>
               ))}
             </div>

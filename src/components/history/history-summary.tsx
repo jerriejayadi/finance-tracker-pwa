@@ -10,11 +10,11 @@ interface HistorySummaryProps {
 
 export function HistorySummary({ transactions }: HistorySummaryProps) {
   const totalIn = transactions
-    .filter((t) => t.type === "income")
-    .reduce((a, t) => a + t.amount, 0);
+    .filter((t) => t.type === "Income")
+    .reduce((a, t) => a + Number(t.amount), 0);
   const totalOut = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((a, t) => a + t.amount, 0);
+    .filter((t) => t.type === "Expense")
+    .reduce((a, t) => a + Number(t.amount), 0);
   const net = totalIn - totalOut;
 
   return (

@@ -13,7 +13,7 @@ interface TxDetailDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tx: Transaction | null;
-  onDelete?: (id: number) => void;
+  onDelete?: (id: string) => void;
 }
 
 export function TxDetailDrawer({
@@ -32,29 +32,29 @@ export function TxDetailDrawer({
           <div
             className={cn(
               "w-14 h-14 rounded-2xl flex items-center justify-center text-[24px] mb-1",
-              tx.type === "income"
+              tx.type === "Income"
                 ? "bg-pos-soft text-pos"
                 : "bg-neg-soft text-neg"
             )}
           >
-            {tx.icon}
+            {tx.category_icon || "💰"}
           </div>
           <div className="text-[17px] font-semibold text-fg-0">
-            {tx.merchant}
+            {tx.merchant || tx.category_name || tx.category}
           </div>
           <div className="text-[12px] text-fg-2 font-mono">
-            {tx.category} &middot; {tx.account}
+            {tx.category_name || tx.category} &middot; {tx.account_name || ""}
           </div>
           <div
             className={cn(
               "font-mono tabular-nums text-[28px] font-medium tracking-tight mt-2",
-              tx.type === "income" ? "text-pos" : "text-neg"
+              tx.type === "Income" ? "text-pos" : "text-neg"
             )}
           >
-            {tx.type === "income" ? "+ " : "\u2212 "}Rp{" "}
-            {tx.amount.toLocaleString("id-ID")}
+            {tx.type === "Income" ? "+ " : "\u2212 "}Rp{" "}
+            {Number(tx.amount).toLocaleString("id-ID")}
           </div>
-          {tx.recurring && (
+          {tx.recurring_transaction_id && (
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-brand bg-brand-soft px-2 py-1 rounded-full mt-1">
               <Repeat size={10} strokeWidth={2} /> Recurring
             </span>
@@ -63,20 +63,20 @@ export function TxDetailDrawer({
 
         {/* Details table */}
         <div className="mx-5 rounded-md bg-bg-0 border border-line overflow-hidden mb-4">
-          <DetailRow label="Date" value={`${tx.date} \u00B7 ${tx.time}`} />
-          <DetailRow label="Account" value={tx.account} />
+          <DetailRow label="Date" value={tx.date} />
+          <DetailRow label="Account" value={tx.account_name || ""} />
           <DetailRow
             label="Category"
             value={
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-bg-2 border border-line text-[12px] text-fg-0">
-                {tx.icon} {tx.category}
+                {tx.category_icon} {tx.category_name || tx.category}
               </span>
             }
           />
           <DetailRow
             label="Type"
-            value={tx.type === "income" ? "Income" : "Expense"}
-            valueClass={tx.type === "income" ? "text-pos" : "text-neg"}
+            value={tx.type}
+            valueClass={tx.type === "Income" ? "text-pos" : "text-neg"}
             last
           />
         </div>

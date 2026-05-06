@@ -3,23 +3,21 @@
 import * as React from "react";
 import { Repeat, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { format, isToday, isYesterday } from "date-fns";
 import type { Transaction } from "./history-constants";
 
-const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 function fmtDateRow(iso: string): string {
-  // Hard-coded "today" for mock; replace with real date logic later
-  if (iso === "2026-04-27") return "Today";
-  if (iso === "2026-04-26") return "Yesterday";
   const d = new Date(iso + "T00:00:00");
-  return d.getDate() + " " + MONTHS_SHORT[d.getMonth()];
+  if (isToday(d)) return "Today";
+  if (isYesterday(d)) return "Yesterday";
+  return format(d, "d MMM");
 }
 
 interface HistoryListProps {
   transactions: Transaction[];
   selectMode: boolean;
-  selected: Set<number>;
-  onToggleSelect: (id: number) => void;
+  selected: Set<string>;
+  onToggleSelect: (id: string) => void;
   onTapRow: (tx: Transaction) => void;
   rangeLabel: string;
 }
@@ -35,7 +33,7 @@ export function HistoryList({
   return (
     <div className="px-3 flex flex-col gap-px">
       {transactions.map((tx) => {
-        const isIncome = tx.type === "income";
+        const isIncome = tx.type === "Income";
         const sel = selected.has(tx.id);
 
         return (
@@ -69,23 +67,23 @@ export function HistoryList({
 
             {/* Icon avatar */}
             <div className="w-10 h-10 rounded-xl bg-bg-2 border border-line flex items-center justify-center text-[17px]">
-              {tx.icon}
+              {tx.category_icon || "💰"}
             </div>
 
             {/* Body */}
             <div className="min-w-0">
               <div className="text-[14px] font-medium text-fg-0 flex items-center gap-1.5 truncate">
-                {tx.merchant}
-                {tx.recurring && (
+                {tx.merchant || tx.category_name || tx.category}
+                {tx.recurring_transaction_id && (
                   <Repeat size={10} strokeWidth={2} className="text-fg-2 flex-shrink-0" />
                 )}
               </div>
               <div className="text-[11px] text-fg-2 font-mono mt-0.5 truncate flex items-center gap-1.5">
                 <span>{fmtDateRow(tx.date)}</span>
                 <span className="opacity-50">&middot;</span>
-                <span>{tx.category}</span>
+                <span>{tx.category_name || tx.category}</span>
                 <span className="opacity-50">&middot;</span>
-                <span className="text-fg-1">{tx.account}</span>
+                <span className="text-fg-1">{tx.account_name || ""}</span>
               </div>
             </div>
 
@@ -97,10 +95,7 @@ export function HistoryList({
                   isIncome ? "text-pos" : "text-fg-0"
                 )}
               >
-                {isIncome ? "+" : "\u2212"} Rp {tx.amount.toLocaleString("id-ID")}
-              </div>
-              <div className="text-[10px] text-fg-2 font-mono mt-0.5">
-                {tx.time}
+                {isIncome ? "+" : "\u2212"} Rp {Number(tx.amount).toLocaleString("id-ID")}
               </div>
             </div>
           </div>

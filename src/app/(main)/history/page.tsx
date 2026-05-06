@@ -22,13 +22,15 @@ import {
 import { HistoryFilterDrawer } from "@/components/history/history-filter-drawer";
 import { TxDetailDrawer } from "@/components/history/tx-detail-drawer";
 import {
-  MOCK_TRANSACTIONS,
   DATE_RANGES,
   DEFAULT_FILTERS,
   type Filters,
   type Transaction,
 } from "@/components/history/history-constants";
 import { useAddTransaction } from "../layout";
+import { useGetTransactions, useDeleteTransactions } from "@/services/transactions/transactions.hooks";
+import { useGetCategories } from "@/services/categories/categories.hooks";
+import { useGetAccounts } from "@/services/accounts/accounts.hooks";
 
 export default function HistoryPage() {
   const openAddTx = useAddTransaction();
@@ -37,30 +39,61 @@ export default function HistoryPage() {
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [detailTx, setDetailTx] = React.useState<Transaction | null>(null);
   const [selectMode, setSelectMode] = React.useState(false);
-  const [selected, setSelected] = React.useState<Set<number>>(new Set());
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [filters, setFilters] = React.useState<Filters>(DEFAULT_FILTERS);
 
-  // Filtered transactions
-  const filteredTx = React.useMemo(() => {
-    return MOCK_TRANSACTIONS.filter((t) => {
-      if (filters.type !== "all" && t.type !== filters.type) return false;
-      if (filters.cats.length && !filters.cats.includes(t.category))
-        return false;
-      if (filters.accts.length && !filters.accts.includes(t.account))
-        return false;
-      if (filters.amtMin && t.amount < filters.amtMin) return false;
-      if (filters.amtMax && t.amount > filters.amtMax) return false;
-      if (searchQ) {
-        const q = searchQ.toLowerCase();
-        if (
-          !t.merchant.toLowerCase().includes(q) &&
-          !t.category.toLowerCase().includes(q)
-        )
-          return false;
+  const { data: categories = [] } = useGetCategories();
+  const { data: accounts = [] } = useGetAccounts();
+
+  // Compute date range from filters
+  const dateRange = React.useMemo(() => {
+    const today = new Date();
+    let dateFrom: string;
+    let dateTo: string = today.toISOString().split("T")[0];
+    switch (filters.range) {
+      case "7d":
+        dateFrom = new Date(today.getTime() - 7 * 86400000).toISOString().split("T")[0];
+        break;
+      case "30d":
+        dateFrom = new Date(today.getTime() - 30 * 86400000).toISOString().split("T")[0];
+        break;
+      case "this": {
+        dateFrom = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+        break;
       }
-      return true;
-    });
-  }, [filters, searchQ]);
+      case "last": {
+        const last = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        dateFrom = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}-01`;
+        const lastEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+        dateTo = lastEnd.toISOString().split("T")[0];
+        break;
+      }
+      default:
+        dateFrom = new Date(today.getTime() - 30 * 86400000).toISOString().split("T")[0];
+    }
+    return { dateFrom, dateTo };
+  }, [filters.range]);
+
+  const { data: transactions = [], isLoading } = useGetTransactions({
+    filters: {
+      type: filters.type !== "all" ? filters.type : undefined,
+      categoryIds: filters.cats.length > 0
+        ? categories.filter((c) => filters.cats.includes(c.name)).map((c) => c.id)
+        : undefined,
+      accountIds: filters.accts.length > 0
+        ? accounts.filter((a) => filters.accts.includes(a.name)).map((a) => a.id)
+        : undefined,
+      amtMin: filters.amtMin || undefined,
+      amtMax: filters.amtMax || undefined,
+      dateFrom: dateRange.dateFrom,
+      dateTo: dateRange.dateTo,
+      search: searchQ || undefined,
+    },
+  });
+
+  const deleteTransactions = useDeleteTransactions({
+    mutationConfig: { onSuccess: () => exitSelectMode() },
+  });
 
   // Active filter chips for display
   const activeChips = React.useMemo(() => {
@@ -111,10 +144,10 @@ export default function HistoryPage() {
 
   const rangeLabel =
     DATE_RANGES.find((r) => r.id === filters.range)?.label || "Last 30 days";
-  const isEmpty = MOCK_TRANSACTIONS.length === 0;
-  const isNoResults = !isEmpty && filteredTx.length === 0;
+  const isEmpty = !isLoading && transactions.length === 0 && !searchQ && filters.type === "all" && filters.cats.length === 0;
+  const isNoResults = !isLoading && transactions.length === 0 && !isEmpty;
 
-  const toggleSelect = (id: number) => {
+  const toggleSelect = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -147,7 +180,7 @@ export default function HistoryPage() {
             </div>
             <button
               onClick={() =>
-                setSelected(new Set(filteredTx.map((t) => t.id)))
+                setSelected(new Set(transactions.map((t) => t.id)))
               }
               className="w-8 h-8 rounded-full bg-bg-1 border border-line flex items-center justify-center text-fg-1 cursor-pointer hover:bg-bg-2 transition-colors"
               title="Select all"
@@ -206,7 +239,7 @@ export default function HistoryPage() {
       )}
 
       {/* Summary */}
-      {!isEmpty && <HistorySummary transactions={filteredTx} />}
+      {!isEmpty && <HistorySummary transactions={transactions} />}
 
       {/* Filter strip */}
       {!isEmpty && !selectMode && (
@@ -251,7 +284,7 @@ export default function HistoryPage() {
       {/* Result count + sort */}
       {!isEmpty && !isNoResults && !selectMode && (
         <div className="flex justify-between items-center px-5 text-[11px] text-fg-2 font-mono uppercase tracking-[0.05em]">
-          <span>{filteredTx.length} transactions</span>
+          <span>{transactions.length} transactions</span>
           <button className="flex items-center gap-1 text-fg-1 normal-case tracking-normal cursor-pointer hover:text-fg-0">
             Newest first
             <ChevronDown size={11} strokeWidth={1.75} />
@@ -259,10 +292,17 @@ export default function HistoryPage() {
         </div>
       )}
 
+      {/* Loading */}
+      {isLoading && (
+        <div className="flex justify-center py-12 text-[13px] text-fg-2">
+          Loading...
+        </div>
+      )}
+
       {/* Content */}
-      {isEmpty ? (
+      {!isLoading && isEmpty ? (
         <HistoryEmptyState onAdd={() => openAddTx("expense")} />
-      ) : isNoResults ? (
+      ) : !isLoading && isNoResults ? (
         <HistoryNoResults
           query={searchQ}
           onClear={() => {
@@ -270,16 +310,16 @@ export default function HistoryPage() {
             setFilters(DEFAULT_FILTERS);
           }}
         />
-      ) : (
+      ) : !isLoading ? (
         <HistoryList
-          transactions={filteredTx}
+          transactions={transactions}
           selectMode={selectMode}
           selected={selected}
           onToggleSelect={toggleSelect}
           onTapRow={(tx) => setDetailTx(tx)}
           rangeLabel={rangeLabel}
         />
-      )}
+      ) : null}
 
       {/* Bulk action bar */}
       {selectMode && selected.size > 0 && (
@@ -288,7 +328,10 @@ export default function HistoryPage() {
             <Tag size={14} strokeWidth={1.75} />
             Recategorize
           </button>
-          <button className="flex-1 h-11 rounded-sm bg-neg text-white text-[13px] font-medium flex items-center justify-center gap-2 cursor-pointer hover:brightness-105 transition-all">
+          <button
+            onClick={() => deleteTransactions.mutate(Array.from(selected))}
+            className="flex-1 h-11 rounded-sm bg-neg text-white text-[13px] font-medium flex items-center justify-center gap-2 cursor-pointer hover:brightness-105 transition-all"
+          >
             <Trash2 size={14} strokeWidth={1.75} />
             Delete ({selected.size})
           </button>
@@ -301,6 +344,8 @@ export default function HistoryPage() {
         onOpenChange={setFilterOpen}
         filters={filters}
         onApply={setFilters}
+        categories={categories.map((c) => ({ id: c.id, name: c.name, icon: c.icon }))}
+        accounts={accounts.map((a) => ({ id: a.id, name: a.name }))}
       />
       <TxDetailDrawer
         open={!!detailTx}
@@ -308,6 +353,7 @@ export default function HistoryPage() {
           if (!open) setDetailTx(null);
         }}
         tx={detailTx}
+        onDelete={(id) => deleteTransactions.mutate([id])}
       />
     </main>
   );
