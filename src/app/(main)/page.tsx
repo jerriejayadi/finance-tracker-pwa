@@ -13,106 +13,12 @@ import { TransactionItem } from "@/components/home/transaction-item";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Chip } from "@/components/ui/chip";
 import { useAddTransaction } from "./layout";
-
-const SEED_GROUPS = [
-  {
-    day: "Today · Apr 27",
-    total: -34.14,
-    items: [
-      {
-        id: 1,
-        merchant: "Ramen Tatsu",
-        category: "Food",
-        icon: "🍜",
-        amount: 18.4,
-        type: "expense" as const,
-        time: "12:48",
-        recurring: false,
-      },
-      {
-        id: 2,
-        merchant: "Spotify",
-        category: "Subscriptions",
-        icon: "♪",
-        amount: 9.99,
-        type: "expense" as const,
-        time: "09:12",
-        recurring: true,
-      },
-      {
-        id: 3,
-        merchant: "Blue Bottle",
-        category: "Coffee",
-        icon: "☕",
-        amount: 5.75,
-        type: "expense" as const,
-        time: "08:19",
-        recurring: false,
-      },
-    ],
-  },
-  {
-    day: "Yesterday · Apr 26",
-    total: 3137.86,
-    items: [
-      {
-        id: 4,
-        merchant: "Payroll · Acme Co.",
-        category: "Income",
-        icon: "$",
-        amount: 3200.0,
-        type: "income" as const,
-        time: "08:00",
-        recurring: false,
-      },
-      {
-        id: 5,
-        merchant: "Trader Joe's",
-        category: "Groceries",
-        icon: "🛒",
-        amount: 62.14,
-        type: "expense" as const,
-        time: "18:31",
-        recurring: false,
-      },
-    ],
-  },
-  {
-    day: "Apr 25",
-    total: -96.45,
-    items: [
-      {
-        id: 6,
-        merchant: "PG&E Electricity",
-        category: "Utilities",
-        icon: "⌁",
-        amount: 82.15,
-        type: "expense" as const,
-        time: "07:02",
-        recurring: true,
-      },
-      {
-        id: 7,
-        merchant: "Uber",
-        category: "Transport",
-        icon: "🚗",
-        amount: 14.3,
-        type: "expense" as const,
-        time: "22:04",
-        recurring: false,
-      },
-    ],
-  },
-];
-
-const CHIPS = [
-  { id: "All", count: 247 },
-  { id: "Food", count: 38 },
-  { id: "Transport", count: 12 },
-  { id: "Income", count: 4 },
-  { id: "Bills", count: 9 },
-  { id: "Fun", count: 16 },
-];
+import { fmtIDR } from "@/lib/format";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
+import { useGetTransactions, useGetTransactionSummary } from "@/services/transactions/transactions.hooks";
+import { useGetAccountBalances } from "@/services/accounts/accounts.hooks";
+import { useGetCategories } from "@/services/categories/categories.hooks";
+import Link from "next/link";
 
 const PERIOD_OPTIONS = [
   { value: "Day", label: "Day" },
@@ -121,10 +27,98 @@ const PERIOD_OPTIONS = [
   { value: "Year", label: "Year" },
 ];
 
+function formatDayLabel(dateStr: string): string {
+  const date = new Date(dateStr + "T00:00:00");
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  const todayStr = format(today, "yyyy-MM-dd");
+  const yesterdayStr = format(yesterday, "yyyy-MM-dd");
+
+  if (dateStr === todayStr) return `Today \u00B7 ${format(date, "MMM d")}`;
+  if (dateStr === yesterdayStr) return `Yesterday \u00B7 ${format(date, "MMM d")}`;
+  return format(date, "MMM d");
+}
+
 export default function DashboardPage() {
   const openAddTx = useAddTransaction();
   const [period, setPeriod] = React.useState("Month");
   const [chip, setChip] = React.useState("All");
+
+  // Compute date range
+  const { dateFrom, dateTo } = React.useMemo(() => {
+    const today = new Date();
+    switch (period) {
+      case "Day":
+        return {
+          dateFrom: format(today, "yyyy-MM-dd"),
+          dateTo: format(today, "yyyy-MM-dd"),
+        };
+      case "Week":
+        return {
+          dateFrom: format(startOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd"),
+          dateTo: format(endOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd"),
+        };
+      case "Year":
+        return {
+          dateFrom: `${today.getFullYear()}-01-01`,
+          dateTo: `${today.getFullYear()}-12-31`,
+        };
+      case "Month":
+      default:
+        return {
+          dateFrom: format(startOfMonth(today), "yyyy-MM-dd"),
+          dateTo: format(endOfMonth(today), "yyyy-MM-dd"),
+        };
+    }
+  }, [period]);
+
+  const { data: accountBalances = [] } = useGetAccountBalances();
+  const { data: recentTx = [] } = useGetTransactions({
+    filters: { dateFrom, dateTo, limit: 20 },
+  });
+  const { data: summary } = useGetTransactionSummary({ dateFrom, dateTo });
+  const { data: categories = [] } = useGetCategories();
+
+  const totalBalance = React.useMemo(
+    () => accountBalances.reduce((sum, a) => sum + Number(a.balance), 0),
+    [accountBalances],
+  );
+
+  // Group transactions by date
+  const groups = React.useMemo(() => {
+    const map = new Map<string, typeof recentTx>();
+    for (const tx of recentTx) {
+      const existing = map.get(tx.date) || [];
+      existing.push(tx);
+      map.set(tx.date, existing);
+    }
+    return Array.from(map.entries()).map(([date, items]) => ({
+      day: date,
+      dayLabel: formatDayLabel(date),
+      total: items.reduce((s, t) =>
+        s + (t.type === "Income" ? Number(t.amount) : -Number(t.amount)), 0),
+      items,
+    }));
+  }, [recentTx]);
+
+  // Category chips with counts
+  const chips = React.useMemo(() => {
+    const all = [{ id: "All", count: recentTx.length }];
+    const catCounts = new Map<string, number>();
+    for (const tx of recentTx) {
+      const name = tx.category_name || tx.category;
+      catCounts.set(name, (catCounts.get(name) || 0) + 1);
+    }
+    for (const [name, count] of catCounts) {
+      all.push({ id: name, count });
+    }
+    return all.slice(0, 6);
+  }, [recentTx]);
+
+  // Month label
+  const monthLabel = format(new Date(), "MMMM \u00B7 yyyy");
 
   return (
     <main className="flex flex-col gap-4">
@@ -138,21 +132,12 @@ export default function DashboardPage() {
             Total balance
           </div>
           <button className="inline-flex items-center gap-1 h-6 px-2.5 rounded-full bg-bg-2 border border-line text-[11px] text-fg-1 font-mono cursor-pointer">
-            April · 2026 <ChevronDown size={12} strokeWidth={1.75} />
+            {monthLabel} <ChevronDown size={12} strokeWidth={1.75} />
           </button>
         </div>
 
         <div className="font-mono tabular-nums text-[42px] leading-[1.05] tracking-[-0.025em] font-medium mt-3 relative z-[1]">
-          $4,283<span className="text-fg-2 text-[28px]">.19</span>
-        </div>
-
-        <div className="flex items-center gap-2 mt-1.5 relative z-[1]">
-          <span className="inline-flex items-center gap-1 font-mono text-[11px] px-2 py-[3px] rounded-full bg-pos-soft text-pos">
-            ▲ 12.4%
-          </span>
-          <span className="text-[11px] text-fg-2">
-            vs March · + $471.20
-          </span>
+          {fmtIDR(totalBalance)}
         </div>
 
         {/* Action buttons */}
@@ -180,7 +165,7 @@ export default function DashboardPage() {
               Income
             </div>
             <div className="font-mono tabular-nums text-[15px] font-medium mt-0.5">
-              + $3,200.00
+              + {fmtIDR(summary?.totalIncome ?? 0)}
             </div>
           </div>
         </div>
@@ -194,7 +179,7 @@ export default function DashboardPage() {
               Expenses
             </div>
             <div className="font-mono tabular-nums text-[15px] font-medium mt-0.5">
-              − $1,876.81
+              &minus; {fmtIDR(summary?.totalExpense ?? 0)}
             </div>
           </div>
         </div>
@@ -205,9 +190,9 @@ export default function DashboardPage() {
         <h2 className="text-[11px] font-semibold text-fg-2 uppercase tracking-[0.06em]">
           Recent activity
         </h2>
-        <button className="text-[12px] text-fg-1 flex items-center gap-0.5 cursor-pointer hover:text-fg-0">
+        <Link href="/history" className="text-[12px] text-fg-1 flex items-center gap-0.5 cursor-pointer hover:text-fg-0">
           See all <ChevronRight size={12} strokeWidth={1.75} />
-        </button>
+        </Link>
       </div>
 
       {/* Period picker */}
@@ -221,7 +206,7 @@ export default function DashboardPage() {
 
       {/* Category chips */}
       <div className="flex gap-1.5 overflow-x-auto px-5 hide-scrollbar pb-1">
-        {CHIPS.map((c) => (
+        {chips.map((c) => (
           <Chip
             key={c.id}
             active={chip === c.id}
@@ -235,25 +220,29 @@ export default function DashboardPage() {
 
       {/* Transaction list */}
       <div className="px-4 flex flex-col gap-0.5">
-        {SEED_GROUPS.map((g) => (
+        {groups.length === 0 && (
+          <div className="flex justify-center py-8 text-[13px] text-fg-2">
+            No transactions yet
+          </div>
+        )}
+        {groups.map((g) => (
           <React.Fragment key={g.day}>
             <div className="text-[11px] text-fg-2 uppercase tracking-[0.04em] px-1 pt-3.5 pb-1.5 flex justify-between items-baseline">
-              <span>{g.day}</span>
+              <span>{g.dayLabel}</span>
               <span className="font-mono text-fg-1 normal-case tracking-normal">
-                {g.total >= 0 ? "+ " : "− "}$
-                {Math.abs(g.total).toFixed(2)}
+                {g.total >= 0 ? "+ " : "\u2212 "}{fmtIDR(Math.abs(g.total))}
               </span>
             </div>
             {g.items.map((tx) => (
               <TransactionItem
                 key={tx.id}
-                title={tx.merchant}
-                category={tx.category}
-                amount={tx.amount}
-                time={tx.time}
-                type={tx.type}
-                icon={tx.icon}
-                recurring={tx.recurring}
+                title={tx.merchant || tx.category_name || tx.category}
+                category={tx.category_name || tx.category}
+                amount={Number(tx.amount)}
+                time={tx.date}
+                type={tx.type === "Income" ? "income" : "expense"}
+                icon={tx.category_icon || ""}
+                recurring={!!tx.recurring_transaction_id}
               />
             ))}
           </React.Fragment>

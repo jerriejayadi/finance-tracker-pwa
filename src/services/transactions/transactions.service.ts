@@ -93,18 +93,18 @@ export const transactionsService = {
     if (error) throw new Error(error.message);
 
     // Flatten joined data
-    return (data ?? []).map((row: Record<string, unknown>) => {
-      const accounts = row.accounts as { name: string } | null;
-      const categories = row.categories as { name: string; icon: string } | null;
+    return (data ?? []).map((row) => {
+      const r = row as Record<string, unknown>;
+      const accounts = r.accounts as { name: string } | null;
+      const categories = r.categories as { name: string; icon: string } | null;
+      const { accounts: _a, categories: _c, ...rest } = r;
       return {
-        ...row,
+        ...rest,
         account_name: accounts?.name ?? "",
-        category_name: categories?.name ?? row.category,
+        category_name: categories?.name ?? r.category,
         category_icon: categories?.icon ?? "",
-        accounts: undefined,
-        categories: undefined,
-      };
-    }) as Transaction[];
+      } as Transaction;
+    });
   },
 
   getTransactionSummary: async (dateFrom: string, dateTo: string): Promise<TransactionSummary> => {

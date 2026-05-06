@@ -1,2 +1,2 @@
 alter table if exists public.profiles
-  add column phone text;
+  add column if not exists phone text;

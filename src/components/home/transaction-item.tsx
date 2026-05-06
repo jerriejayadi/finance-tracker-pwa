@@ -60,7 +60,7 @@ export function TransactionItem({
           isIncome ? "text-pos" : "text-fg-0"
         )}
       >
-        {sign} ${Math.abs(amount).toFixed(2)}
+        {sign} Rp {Math.abs(amount).toLocaleString("id-ID")}
       </div>
     </div>
   );

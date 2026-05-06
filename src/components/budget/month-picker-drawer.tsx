@@ -9,7 +9,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { MONTH_NAMES, monthKey, MOCK_BUDGETS } from "./budget-constants";
+import { MONTH_NAMES, monthKey } from "./budget-constants";
 
 interface MonthPickerDrawerProps {
   open: boolean;
@@ -64,8 +64,7 @@ export function MonthPickerDrawer({
         <div className="grid grid-cols-4 gap-2 px-5 pb-4">
           {MONTH_NAMES.map((mn, idx) => {
             const k = monthKey(viewYear, idx);
-            const hasData =
-              (createdBudgets && createdBudgets[k]) || MOCK_BUDGETS[k];
+            const hasData = createdBudgets && createdBudgets[k];
             const isCurrent = viewYear === year && idx === month;
 
             return (

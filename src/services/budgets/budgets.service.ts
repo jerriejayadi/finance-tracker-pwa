@@ -82,20 +82,21 @@ export const budgetsService = {
       spentMap.set(key, entry);
     }
 
-    return (budgets ?? []).map((b: Record<string, unknown>) => {
-      const categories = b.categories as { name: string; icon: string } | null;
+    return (budgets ?? []).map((b) => {
+      const row = b as Record<string, unknown>;
+      const categories = row.categories as { name: string; icon: string } | null;
       const spentKey = (b.category_id as string) || (b.category as string);
       const spentEntry = spentMap.get(spentKey) || { total: 0, recent: 0 };
 
+      const { categories: _cat, ...rest } = row;
       return {
-        ...b,
+        ...rest,
         category_name: categories?.name ?? b.category,
         category_icon: categories?.icon ?? "",
         spent: spentEntry.total,
         recent: spentEntry.recent,
-        categories: undefined,
-      };
-    }) as BudgetWithSpent[];
+      } as BudgetWithSpent;
+    });
   },
 
   createBudgets: async (payloads: CreateBudgetPayload[]): Promise<Budget[]> => {

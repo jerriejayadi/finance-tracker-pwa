@@ -10,9 +10,7 @@ import {
   Tag,
   Trash2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { fmtIDRShort } from "@/lib/format";
-import { Chip } from "@/components/ui/chip";
 import { HistorySummary } from "@/components/history/history-summary";
 import { HistoryList } from "@/components/history/history-list";
 import {

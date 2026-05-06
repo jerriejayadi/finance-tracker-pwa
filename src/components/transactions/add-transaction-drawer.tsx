@@ -33,6 +33,8 @@ import {
 import { useGetCategories } from "@/services/categories/categories.hooks";
 import { useGetAccountBalances } from "@/services/accounts/accounts.hooks";
 import { useCreateTransaction } from "@/services/transactions/transactions.hooks";
+import { useGetBudgets } from "@/services/budgets/budgets.hooks";
+import { monthKey } from "@/components/budget/budget-constants";
 import type { AccountBalance } from "@/services/accounts/accounts.service";
 
 /* ------------------------------------------------------------------ */
@@ -350,6 +352,9 @@ export function AddTransactionDrawer({
   // Hooks
   const { data: categories = [] } = useGetCategories();
   const { data: accountBalances = [] } = useGetAccountBalances();
+  const now = new Date();
+  const currentMonthKey = monthKey(now.getFullYear(), now.getMonth());
+  const { data: budgets = [] } = useGetBudgets({ monthYear: currentMonthKey });
   const createTransaction = useCreateTransaction({
     mutationConfig: {
       onSuccess: () => {
@@ -358,13 +363,15 @@ export function AddTransactionDrawer({
     },
   });
 
-  // Derived categories based on transaction type
+  // Only show categories that have budgets defined for current month
   const displayCategories = React.useMemo(() => {
-    const typeFilter = type === "expense" ? "expense" : type === "income" ? "income" : "both";
-    return categories
-      .filter((c) => c.type === typeFilter || c.type === "both")
-      .slice(0, 8);
-  }, [categories, type]);
+    if (budgets.length === 0) return [];
+    const budgetCategoryIds = new Set(budgets.map((b) => b.category_id).filter(Boolean));
+    const budgetCategoryNames = new Set(budgets.map((b) => b.category));
+    return categories.filter(
+      (c) => budgetCategoryIds.has(c.id) || budgetCategoryNames.has(c.name)
+    );
+  }, [categories, budgets]);
 
   // Active accounts
   const activeAccounts = React.useMemo(

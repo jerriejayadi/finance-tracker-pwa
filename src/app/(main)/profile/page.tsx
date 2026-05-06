@@ -25,6 +25,7 @@ import { useGetProfile } from "@/services/profile/profile.hooks";
 import { Avatar } from "@/components/ui/avatar";
 import { SettingsGroup, SettingsRow } from "@/components/ui/settings-group";
 import { Toggle } from "@/components/ui/toggle";
+import { AccountsSection } from "@/components/profile/accounts-section";
 
 function getCurrencySymbol(code: string): string {
   try {
@@ -168,6 +169,9 @@ export default function ProfilePage() {
             value={firstDayLabel}
           />
         </SettingsGroup>
+
+        {/* Accounts */}
+        <AccountsSection />
 
         {/* Preferences */}
         <SettingsGroup label="Preferences">
