@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { fmtIDR } from "@/lib/format";
 import {
   Drawer,
   DrawerContent,
@@ -29,67 +30,16 @@ import {
   Plus,
   Check,
 } from "lucide-react";
+import { useGetCategories } from "@/services/categories/categories.hooks";
+import { useGetAccountBalances } from "@/services/accounts/accounts.hooks";
+import { useCreateTransaction } from "@/services/transactions/transactions.hooks";
+import type { AccountBalance } from "@/services/accounts/accounts.service";
 
 /* ------------------------------------------------------------------ */
-/*  Data                                                               */
+/*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const CATEGORIES = [
-  { id: "food", name: "Food", em: "🍜" },
-  { id: "coffee", name: "Coffee", em: "☕" },
-  { id: "groceries", name: "Groceries", em: "🛒" },
-  { id: "transport", name: "Transport", em: "🚗" },
-  { id: "rent", name: "Rent", em: "🏠" },
-  { id: "bills", name: "Bills", em: "⌁" },
-  { id: "fun", name: "Fun", em: "🎬" },
-  { id: "more", name: "More", em: "⋯" },
-];
-
-const ACCOUNTS = [
-  {
-    id: "chase",
-    name: "Chase Checking",
-    meta: "•• 4218",
-    balance: "$4,283.19",
-    em: "🏦",
-    colorClass: "text-brand",
-  },
-  {
-    id: "savings",
-    name: "Ally Savings",
-    meta: "•• 8821",
-    balance: "$12,460.00",
-    em: "💰",
-    colorClass: "text-pos",
-  },
-  {
-    id: "amex",
-    name: "Amex Gold",
-    meta: "•• 1003",
-    balance: "− $612.40",
-    em: "💳",
-    colorClass: "text-neg",
-    isNeg: true,
-  },
-  {
-    id: "cash",
-    name: "Cash",
-    meta: "Wallet",
-    balance: "$84.00",
-    em: "💵",
-    colorClass: "text-fg-1",
-  },
-  {
-    id: "venmo",
-    name: "Venmo",
-    meta: "@alex.m",
-    balance: "$24.50",
-    em: "◆",
-    colorClass: "text-brand",
-  },
-];
-
-const QUICK_AMOUNTS = [5, 10, 20, 50, 100];
+const QUICK_AMOUNTS = [50_000, 100_000, 200_000, 500_000, 1_000_000];
 
 type TxType = "expense" | "income" | "transfer";
 type ViewState = "main" | "date" | "account";
@@ -219,18 +169,20 @@ function DatePickerView({
 
 function AccountPickerView({
   value,
+  accounts,
   onSelect,
   onBack,
 }: {
   value: string;
+  accounts: AccountBalance[];
   onSelect: (key: string, label: string) => void;
   onBack: () => void;
 }) {
   const [search, setSearch] = React.useState("");
-  const filtered = ACCOUNTS.filter(
+  const filtered = accounts.filter(
     (a) =>
       a.name.toLowerCase().includes(search.toLowerCase()) ||
-      a.meta.toLowerCase().includes(search.toLowerCase()),
+      a.type.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -266,11 +218,12 @@ function AccountPickerView({
         {/* Account list */}
         <div className="flex flex-col gap-2 mb-4">
           {filtered.map((a) => {
-            const sel = value === a.id;
+            const sel = value === a.account_id;
+            const isNeg = Number(a.balance) < 0;
             return (
               <button
-                key={a.id}
-                onClick={() => onSelect(a.id, a.name + " · " + a.meta)}
+                key={a.account_id}
+                onClick={() => onSelect(a.account_id, a.name)}
                 className={cn(
                   "grid grid-cols-[40px_1fr_auto_24px] gap-3 items-center p-3 border rounded-md cursor-pointer transition-colors text-left",
                   sel
@@ -282,20 +235,19 @@ function AccountPickerView({
                 <div
                   className={cn(
                     "w-10 h-10 rounded-[10px] bg-bg-2 border border-line flex items-center justify-center text-[18px]",
-                    a.colorClass,
                     sel && "border-transparent",
                   )}
                 >
-                  {a.em}
+                  {a.icon || "🏦"}
                 </div>
 
-                {/* Name + meta */}
+                {/* Name + type */}
                 <div className="min-w-0">
                   <div className="text-[14px] font-medium text-fg-0">
                     {a.name}
                   </div>
                   <div className="font-mono text-[11px] text-fg-2 mt-0.5">
-                    {a.meta}
+                    {a.type}
                   </div>
                 </div>
 
@@ -304,10 +256,10 @@ function AccountPickerView({
                   <div
                     className={cn(
                       "font-mono tabular-nums text-[13px] font-medium",
-                      a.isNeg ? "text-neg" : "text-fg-0",
+                      isNeg ? "text-neg" : "text-fg-0",
                     )}
                   >
-                    {a.balance}
+                    {fmtIDR(Number(a.balance))}
                   </div>
                   <div className="text-[10px] text-fg-2 uppercase tracking-[0.04em] mt-0.5">
                     Balance
@@ -378,7 +330,7 @@ export function AddTransactionDrawer({
 
   const [amount, setAmount] = React.useState(0);
   const [editingValue, setEditingValue] = React.useState("");
-  const [cat, setCat] = React.useState("food");
+  const [cat, setCat] = React.useState("");
   const [note, setNote] = React.useState("");
   const [recurring, setRecurring] = React.useState(false);
   const [isFocused, setIsFocused] = React.useState(false);
@@ -387,13 +339,54 @@ export function AddTransactionDrawer({
   const dateLabel = React.useMemo(() => {
     if (!date) return "Select date";
     const base = format(date, "MMM d, yyyy");
-    if (isToday(date)) return `Today · ${base}`;
-    if (isYesterday(date)) return `Yesterday · ${base}`;
-    if (isSameDay(date, subDays(new Date(), 2))) return `2 days ago · ${base}`;
+    if (isToday(date)) return `Today \u00B7 ${base}`;
+    if (isYesterday(date)) return `Yesterday \u00B7 ${base}`;
+    if (isSameDay(date, subDays(new Date(), 2))) return `2 days ago \u00B7 ${base}`;
     return base;
   }, [date]);
-  const [acctKey, setAcctKey] = React.useState("chase");
-  const [acctLabel, setAcctLabel] = React.useState("Chase Checking · •• 4218");
+  const [acctKey, setAcctKey] = React.useState("");
+  const [acctLabel, setAcctLabel] = React.useState("");
+
+  // Hooks
+  const { data: categories = [] } = useGetCategories();
+  const { data: accountBalances = [] } = useGetAccountBalances();
+  const createTransaction = useCreateTransaction({
+    mutationConfig: {
+      onSuccess: () => {
+        onOpenChange(false);
+      },
+    },
+  });
+
+  // Derived categories based on transaction type
+  const displayCategories = React.useMemo(() => {
+    const typeFilter = type === "expense" ? "expense" : type === "income" ? "income" : "both";
+    return categories
+      .filter((c) => c.type === typeFilter || c.type === "both")
+      .slice(0, 8);
+  }, [categories, type]);
+
+  // Active accounts
+  const activeAccounts = React.useMemo(
+    () => accountBalances.filter((a) => a.is_active),
+    [accountBalances],
+  );
+
+  // Set default account when loaded
+  React.useEffect(() => {
+    if (activeAccounts.length > 0 && !acctKey) {
+      const first = activeAccounts[0];
+      setAcctKey(first.account_id);
+      setAcctLabel(first.name);
+    }
+  }, [activeAccounts, acctKey]);
+
+  // Set default category when loaded
+  React.useEffect(() => {
+    if (displayCategories.length > 0 && !cat) {
+      setCat(displayCategories[0].id);
+    }
+  }, [displayCategories, cat]);
 
   React.useEffect(() => {
     if (open) {
@@ -405,16 +398,16 @@ export function AddTransactionDrawer({
   // Formatter: splits amount into whole (with commas) and cents (always 2 digits)
   const formatWhole = (n: number) => {
     const str = String(Math.trunc(n));
-    return str.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return str.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
   const displayWhole = isFocused
-    ? (editingValue.split(".")[0] || "0").replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+    ? (editingValue.split(".")[0] || "0").replace(/\B(?=(\d{3})+(?!\d))/g, ".")
     : formatWhole(amount);
 
   const displayCents = (() => {
     if (isFocused) {
-      const parts = editingValue.split(".");
+      const parts = editingValue.split(",");
       if (parts.length < 2) return "00";
       return (parts[1] || "").padEnd(2, "0").slice(0, 2);
     }
@@ -424,10 +417,19 @@ export function AddTransactionDrawer({
   })();
 
   const segIdx = type === "expense" ? 0 : type === "income" ? 1 : 2;
-  const sym = type === "expense" ? "−" : type === "income" ? "+" : "";
 
   const handleSave = () => {
-    onOpenChange(false);
+    const selectedCategory = categories.find((c) => c.id === cat);
+    createTransaction.mutate({
+      account_id: acctKey,
+      category_id: cat,
+      type: type === "expense" ? "Expense" : type === "income" ? "Income" : "Transfer",
+      category: selectedCategory?.name ?? "",
+      amount: amount,
+      date: format(date, "yyyy-MM-dd"),
+      merchant: note || undefined,
+      note: note || undefined,
+    });
   };
 
   return (
@@ -446,6 +448,7 @@ export function AddTransactionDrawer({
         {view === "account" && (
           <AccountPickerView
             value={acctKey}
+            accounts={activeAccounts}
             onSelect={(k, lbl) => {
               setAcctKey(k);
               setAcctLabel(lbl);
@@ -461,7 +464,7 @@ export function AddTransactionDrawer({
               <DrawerHeader className="px-0 text-left">
                 <DrawerTitle>Add transaction</DrawerTitle>
                 <DrawerDescription>
-                  All amounts are saved in USD.
+                  All amounts are saved in IDR.
                 </DrawerDescription>
               </DrawerHeader>
 
@@ -509,8 +512,7 @@ export function AddTransactionDrawer({
                 className="relative flex items-baseline justify-center gap-1 py-4 pb-3 font-mono tabular-nums cursor-text group"
                 onClick={() => document.getElementById("amount-input")?.focus()}
               >
-                {/* <span className="text-[28px] text-fg-2">{sym}</span> */}
-                <span className="text-[28px] text-fg-2">$</span>
+                <span className="text-[28px] text-fg-2">Rp</span>
                 <span
                   className={cn(
                     "text-[56px] font-medium leading-none tracking-[-0.03em]",
@@ -525,31 +527,23 @@ export function AddTransactionDrawer({
                   {displayWhole}
                 </span>
                 <span className="relative text-[32px] text-fg-2 tracking-[-0.01em]">
-                  .{displayCents}
+                  ,{displayCents}
                   {isFocused && (
                     <span className="absolute -right-3 top-1 w-[2.5px] h-[34px] bg-brand animate-pulse rounded-full" />
                   )}
                 </span>
-                {/* {amount} */}
                 <input
                   id="amount-input"
                   type="text"
                   inputMode="decimal"
                   className="absolute inset-0 opacity-0 w-full h-full cursor-text"
                   onKeyDown={(e) => {
-                    if (e.key === "Backspace" && editingValue.endsWith(".0")) {
+                    if (e.key === "Backspace" && editingValue.endsWith(",0")) {
                       e.preventDefault();
-                      if (editingValue.endsWith(".0")) {
-                        const newVal = editingValue.slice(0, -3);
-                        setEditingValue(newVal);
-                        const parsed = parseFloat(newVal);
-                        setAmount(isNaN(parsed) ? 0 : parsed);
-                      } else if (editingValue.endsWith(".")) {
-                        const newVal = editingValue.slice(0, -2);
-                        setEditingValue(newVal);
-                        const parsed = parseFloat(newVal);
-                        setAmount(isNaN(parsed) ? 0 : parsed);
-                      }
+                      const newVal = editingValue.slice(0, -3);
+                      setEditingValue(newVal);
+                      const parsed = parseFloat(newVal);
+                      setAmount(isNaN(parsed) ? 0 : parsed);
                     }
                   }}
                   value={isFocused ? editingValue : ""}
@@ -558,39 +552,26 @@ export function AddTransactionDrawer({
                     setEditingValue(amount === 0 ? "" : String(amount));
                   }}
                   onChange={(e) => {
-                    // Strip everything except digits and dot
-                    let val = e.target.value.replace(/[^0-9.]/g, "");
-                    const parts = val.split(".");
-                    // Only allow one dot
+                    let val = e.target.value.replace(/[^0-9,]/g, "");
+                    const parts = val.split(",");
                     if (parts.length > 2) return;
-                    // Remove leading zeros (but keep "0" and "0.")
                     if (parts[0].length > 1) {
                       parts[0] = parts[0].replace(/^0+/, "") || "0";
                     }
-                    // Limit to 2 decimal places and strip trailing zero
                     if (parts[1] !== undefined) {
                       if (parts[1].length > 2) {
                         parts[1] = parts[1].slice(0, 2);
                       }
-                      if (parts[1].endsWith("0") && parts[1].length > 0) {
-                        parts[1] = parts[1].slice(0, -1);
-                      }
                     }
-                    val = parts[1] !== undefined ? `${parts[0]}.${parts[1]}` : parts[0];
-                    // If trailing dot from deletion (backspace), strip it
-                    if (val.endsWith(".") && val.length < editingValue.length) {
-                      val = val.slice(0, -1);
-                    }
+                    val = parts[1] !== undefined ? `${parts[0]},${parts[1]}` : parts[0];
                     setEditingValue(val);
-                    // Update the number state in real-time
-                    const parsed = parseFloat(val);
+                    const parsed = parseFloat(val.replace(",", "."));
                     if (!isNaN(parsed)) setAmount(parsed);
-                    else if (val === "" || val === ".") setAmount(0);
+                    else if (val === "" || val === ",") setAmount(0);
                   }}
                   onBlur={() => {
                     setIsFocused(false);
-                    // Finalize: parse the editing value to a clean number
-                    const parsed = parseFloat(editingValue);
+                    const parsed = parseFloat(editingValue.replace(",", "."));
                     setAmount(isNaN(parsed) ? 0 : parsed);
                     setEditingValue("");
                   }}
@@ -607,14 +588,14 @@ export function AddTransactionDrawer({
                     onClick={() => setAmount(v)}
                     className="rounded-full font-mono text-[12px] text-fg-1 hover:text-fg-0"
                   >
-                    ${v}
+                    {v >= 1_000_000 ? `${v / 1_000_000}jt` : `${v / 1_000}rb`}
                   </Button>
                 ))}
               </div>
 
               {/* Category grid */}
               <div className="grid grid-cols-4 gap-2 mb-4">
-                {CATEGORIES.map((c) => (
+                {displayCategories.map((c) => (
                   <button
                     key={c.id}
                     onClick={() => setCat(c.id)}
@@ -625,7 +606,7 @@ export function AddTransactionDrawer({
                         : "border-line bg-bg-2 text-fg-1 hover:bg-bg-3",
                     )}
                   >
-                    <span className="text-[18px]">{c.em}</span>
+                    <span className="text-[18px]">{c.icon}</span>
                     <span>{c.name}</span>
                   </button>
                 ))}
@@ -666,7 +647,7 @@ export function AddTransactionDrawer({
                       Account
                     </div>
                     <div className="text-[14px] text-fg-0 font-medium mt-0.5">
-                      {acctLabel}
+                      {acctLabel || "Select account"}
                     </div>
                   </div>
                   <ChevronRight
@@ -703,7 +684,7 @@ export function AddTransactionDrawer({
                     <Repeat size={14} strokeWidth={1.75} /> Make recurring
                   </div>
                   <div className="text-[11px] text-fg-2 mt-0.5">
-                    Repeats every month on the 27th
+                    Repeats every month on the {date.getDate()}th
                   </div>
                 </div>
                 <Toggle checked={recurring} onCheckedChange={setRecurring} />
@@ -715,7 +696,12 @@ export function AddTransactionDrawer({
               <Button variant="secondary" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleSave}>Save transaction</Button>
+              <Button
+                onClick={handleSave}
+                disabled={amount === 0 || !acctKey || createTransaction.isPending}
+              >
+                {createTransaction.isPending ? "Saving..." : "Save transaction"}
+              </Button>
             </DrawerFooter>
           </>
         )}
@@ -723,4 +709,3 @@ export function AddTransactionDrawer({
     </Drawer>
   );
 }
-
