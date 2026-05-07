@@ -35,6 +35,12 @@ export type UpdateBudgetPayload = {
   currency?: string;
 };
 
+export type BudgetMonthSummary = {
+  month_year: string;
+  category_count: number;
+  total_planned: number;
+};
+
 export const budgetsService = {
   getBudgets: async (monthYear: string): Promise<BudgetWithSpent[]> => {
     const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -137,5 +143,35 @@ export const budgetsService = {
       .eq("id", id);
 
     if (error) throw new Error(error.message);
+  },
+
+  getBudgetMonths: async (): Promise<BudgetMonthSummary[]> => {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) {
+      throw new Error(authError?.message ?? "Not authenticated");
+    }
+
+    const { data, error } = await supabase
+      .from("budgets")
+      .select("month_year, planned_amount")
+      .eq("user_id", authData.user.id)
+      .order("month_year", { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    // Aggregate client-side: group by month_year
+    const map = new Map<string, { count: number; total: number }>();
+    for (const row of data ?? []) {
+      const entry = map.get(row.month_year) ?? { count: 0, total: 0 };
+      entry.count += 1;
+      entry.total += Number(row.planned_amount);
+      map.set(row.month_year, entry);
+    }
+
+    return Array.from(map.entries()).map(([month_year, { count, total }]) => ({
+      month_year,
+      category_count: count,
+      total_planned: total,
+    }));
   },
 };
