@@ -2,28 +2,23 @@
 
 import * as React from "react";
 import { Plus, Tag, Bell, Repeat } from "lucide-react";
-import { fmtIDR } from "@/lib/format";
-import type { BudgetCategory } from "./budget-types";
 import { MONTH_NAMES } from "./budget-constants";
 
 interface BudgetEmptyStateProps {
   year: number;
   month: number;
-  previousCategories: BudgetCategory[] | null;
+  hasPreviousBudgets: boolean;
   onCreate: () => void;
-  onCopyFromLastMonth?: () => void;
+  onCopyFromTemplate: () => void;
 }
 
 export function BudgetEmptyState({
   year,
   month,
-  previousCategories,
+  hasPreviousBudgets,
   onCreate,
-  onCopyFromLastMonth,
+  onCopyFromTemplate,
 }: BudgetEmptyStateProps) {
-  const prevTotal = previousCategories
-    ? previousCategories.reduce((a, c) => a + c.budget, 0)
-    : null;
 
   return (
     <div className="flex flex-col items-center px-6 pt-8">
@@ -114,24 +109,14 @@ export function BudgetEmptyState({
         Create budget for {MONTH_NAMES[month]}
       </button>
 
-      {prevTotal != null && (
-        <div className="mt-5 w-full p-4 rounded-lg bg-bg-1 border border-line flex items-center justify-between">
-          <div>
-            <div className="text-[11px] text-fg-2 uppercase tracking-[0.04em]">
-              Last month total
-            </div>
-            <div className="font-mono text-[14px] font-medium mt-0.5">
-              {fmtIDR(prevTotal)}
-            </div>
-          </div>
-          <button
-            onClick={onCopyFromLastMonth ?? onCreate}
-            className="h-8 px-3 rounded-sm bg-bg-2 border border-line text-[12px] text-fg-0 font-medium flex items-center gap-1.5 cursor-pointer hover:bg-bg-3 transition-colors"
-          >
-            <Repeat size={13} strokeWidth={1.75} />
-            Copy from last month
-          </button>
-        </div>
+      {hasPreviousBudgets && (
+        <button
+          onClick={onCopyFromTemplate}
+          className="mt-3 h-9 px-4 rounded-sm bg-bg-2 border border-line text-[13px] text-fg-0 font-medium flex items-center gap-2 cursor-pointer hover:bg-bg-3 hover:border-brand transition-colors"
+        >
+          <Repeat size={14} strokeWidth={1.75} />
+          Copy from template
+        </button>
       )}
 
       {/* Tips */}
