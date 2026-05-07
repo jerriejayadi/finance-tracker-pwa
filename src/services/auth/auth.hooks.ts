@@ -25,6 +25,23 @@ export const useLoginMutation = ({ mutationConfig }: UseLoginParams = {}) => {
   });
 };
 
+type UseGoogleSignInParams = {
+  mutationConfig?: MutationConfig<typeof authService.signInWithGoogle>;
+};
+
+export const useGoogleSignInMutation = ({
+  mutationConfig,
+}: UseGoogleSignInParams = {}) => {
+  return useMutation({
+    mutationFn: authService.signInWithGoogle,
+    ...mutationConfig,
+    onError: (error, ...args) => {
+      console.error("Google sign-in failed:", error.message);
+      mutationConfig?.onError?.(error, ...args);
+    },
+  });
+};
+
 type UseRegisterParams = {
   mutationConfig?: MutationConfig<typeof authService.register>;
 };
