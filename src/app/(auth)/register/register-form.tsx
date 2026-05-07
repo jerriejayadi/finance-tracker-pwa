@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PasswordStrength } from "@/components/ui/password-strength";
 import {
@@ -57,7 +59,9 @@ type ProfileFormValues = v.InferOutput<typeof ProfileSchema>;
 type Step = "CREDENTIALS" | "VERIFY_OTP" | "PROFILE";
 
 export function RegisterForm() {
-  const [step, setStep] = React.useState<Step>("CREDENTIALS");
+  const searchParams = useSearchParams();
+  const initialStep = searchParams.get("step") === "profile" ? "PROFILE" : "CREDENTIALS";
+  const [step, setStep] = React.useState<Step>(initialStep);
   const [showPwd, setShowPwd] = React.useState(false);
   const [agree, setAgree] = React.useState(false);
 
@@ -110,9 +114,21 @@ export function RegisterForm() {
     });
   };
 
-  const handleProfileSubmit = (data: ProfileFormValues) => {
+  const handleProfileSubmit = async (data: ProfileFormValues) => {
+    let displayName = storedFullName;
+
+    if (!displayName) {
+      // SSO user — get name from auth metadata
+      const { data: userData } = await supabase.auth.getUser();
+      displayName =
+        userData.user?.user_metadata?.full_name ||
+        userData.user?.user_metadata?.name ||
+        userData.user?.email?.split("@")[0] ||
+        "User";
+    }
+
     setupProfileMutation.mutate({
-      display_name: storedFullName,
+      display_name: displayName,
       phone: data.phone,
       currency_preference: data.currency,
     });
