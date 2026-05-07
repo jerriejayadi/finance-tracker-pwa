@@ -2,6 +2,7 @@ import { RegisterForm } from "./register-form";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "Sign up — FinTrack",
@@ -33,7 +34,9 @@ export default function RegisterPage() {
       </div>
 
       {/* Form */}
-      <RegisterForm />
+      <Suspense>
+        <RegisterForm />
+      </Suspense>
 
       {/* Divider */}
       <div className="flex items-center gap-3 my-5">

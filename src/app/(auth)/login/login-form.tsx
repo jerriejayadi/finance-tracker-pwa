@@ -133,7 +133,7 @@ export function LoginForm() {
       </button>
       <button
         type="button"
-        onClick={() => googleSignIn.mutate()}
+        onClick={() => googleSignIn.mutate(undefined)}
         disabled={googleSignIn.isPending}
         className="flex-1 h-12 rounded-sm bg-bg-1 border border-line text-fg-0 text-[14px] font-medium flex items-center justify-center gap-2 cursor-pointer hover:bg-bg-2 transition-colors"
       >
