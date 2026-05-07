@@ -10,6 +10,7 @@ import { BudgetHero } from "@/components/budget/budget-hero";
 import { BudgetInsight } from "@/components/budget/budget-insight";
 import { BudgetPace } from "@/components/budget/budget-pace";
 import type { BudgetCategory } from "@/components/budget/budget-types";
+import { CopyFromMonthDrawer } from "@/components/budget/copy-from-month-drawer";
 import { CreateBudgetDrawer } from "@/components/budget/create-budget-drawer";
 import { EditBudgetDrawer } from "@/components/budget/edit-budget-drawer";
 import { MonthPickerDrawer } from "@/components/budget/month-picker-drawer";
@@ -24,7 +25,7 @@ import {
   Tag,
 } from "lucide-react";
 import * as React from "react";
-import { useGetBudgets, useCreateBudgets, useUpdateBudget, useDeleteBudget } from "@/services/budgets/budgets.hooks";
+import { useGetBudgets, useCreateBudgets, useUpdateBudget, useDeleteBudget, useGetBudgetMonths } from "@/services/budgets/budgets.hooks";
 import { useGetCategories } from "@/services/categories/categories.hooks";
 import { useGetProfile } from "@/services/profile/profile.hooks";
 
@@ -44,23 +45,22 @@ export default function BudgetPage() {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [copyFromPrev, setCopyFromPrev] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
+  const [copyDrawerOpen, setCopyDrawerOpen] = React.useState(false);
+  const [copyFromMonth, setCopyFromMonth] = React.useState<string | null>(null);
 
   const key = monthKey(year, month);
-
-  // Previous month
-  let pm = month - 1,
-    py = year;
-  if (pm < 0) {
-    pm = 11;
-    py -= 1;
-  }
-  const prevKey = monthKey(py, pm);
 
   const { data: profile } = useGetProfile();
   const currency = profile?.currency_preference ?? "IDR";
   const { data: budgetData, isLoading } = useGetBudgets({ monthYear: key });
-  const { data: prevBudgetData } = useGetBudgets({ monthYear: prevKey });
   const { data: categories = [] } = useGetCategories();
+  const { data: budgetMonths = [] } = useGetBudgetMonths();
+
+  // Fetch budget for the month user wants to copy from
+  const { data: copySourceData } = useGetBudgets({
+    monthYear: copyFromMonth ?? "",
+    queryConfig: { enabled: !!copyFromMonth },
+  });
 
   const createBudgets = useCreateBudgets({
     mutationConfig: {
@@ -84,19 +84,15 @@ export default function BudgetPage() {
     }));
   }, [budgetData]);
 
-  const previousCats: BudgetCategory[] | null = React.useMemo(() => {
-    if (!prevBudgetData || prevBudgetData.length === 0) return null;
-    return prevBudgetData.map((b) => ({
-      id: b.id,
-      name: b.category_name || b.category,
-      icon: b.category_icon || "",
-      budget: Number(b.planned_amount),
-      spent: b.spent,
-      recent: b.recent,
-    }));
-  }, [prevBudgetData]);
-
   const isEmpty = !isLoading && (!cats || cats.length === 0);
+
+  React.useEffect(() => {
+    if (copyFromMonth && copySourceData && copySourceData.length > 0) {
+      setCopyFromPrev(true);
+      setCreateOpen(true);
+      setCopyFromMonth(null);
+    }
+  }, [copyFromMonth, copySourceData]);
 
   const stepMonth = (delta: number) => {
     let m = month + delta;
@@ -205,15 +201,12 @@ export default function BudgetPage() {
         <BudgetEmptyState
           year={year}
           month={month}
-          previousCategories={previousCats}
+          hasPreviousBudgets={budgetMonths.filter((m) => m.month_year !== key).length > 0}
           onCreate={() => {
             setCopyFromPrev(false);
             setCreateOpen(true);
           }}
-          onCopyFromLastMonth={() => {
-            setCopyFromPrev(true);
-            setCreateOpen(true);
-          }}
+          onCopyFromTemplate={() => setCopyDrawerOpen(true)}
         />
       ) : !isLoading && cats ? (
         <>
@@ -300,7 +293,24 @@ export default function BudgetPage() {
         year={year}
         month={month}
         onSave={handleSave}
-        initialCategories={copyFromPrev ? previousCats : null}
+        initialCategories={
+          copyFromPrev && copySourceData
+            ? copySourceData.map((b) => ({
+                id: b.id,
+                name: b.category_name || b.category,
+                icon: b.category_icon || "",
+                budget: Number(b.planned_amount),
+                spent: 0,
+                recent: 0,
+              }))
+            : null
+        }
+      />
+      <CopyFromMonthDrawer
+        open={copyDrawerOpen}
+        onOpenChange={setCopyDrawerOpen}
+        currentMonthYear={key}
+        onSelect={(monthYear) => setCopyFromMonth(monthYear)}
       />
       {cats && (
         <EditBudgetDrawer
