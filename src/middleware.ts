@@ -34,7 +34,14 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && isAuthPage) {
-    return NextResponse.redirect(new URL("/", request.url));
+    // Allow authenticated users to access profile setup (SSO users need this)
+    const isProfileSetup =
+      nextUrl.pathname === "/register" &&
+      nextUrl.searchParams.get("step") === "profile";
+
+    if (!isProfileSetup) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
   return supabaseResponse;
