@@ -3,12 +3,14 @@ import {
   budgetsService,
   CreateBudgetPayload,
   UpdateBudgetPayload,
+  BudgetMonthSummary,
 } from "./budgets.service";
 import { QueryConfig, MutationConfig } from "@/lib/query-client";
 
 export const budgetKeys = {
   all: ["budgets"] as const,
   month: (monthYear: string) => ["budgets", monthYear] as const,
+  months: () => ["budgets", "months"] as const,
 };
 
 export const getBudgetsQueryOptions = (monthYear: string) => ({
@@ -24,6 +26,22 @@ type UseGetBudgetsParams = {
 export const useGetBudgets = ({ monthYear, queryConfig }: UseGetBudgetsParams) => {
   return useQuery({
     ...getBudgetsQueryOptions(monthYear),
+    ...queryConfig,
+  });
+};
+
+export const getBudgetMonthsQueryOptions = () => ({
+  queryKey: budgetKeys.months(),
+  queryFn: () => budgetsService.getBudgetMonths(),
+});
+
+type UseGetBudgetMonthsParams = {
+  queryConfig?: QueryConfig<typeof getBudgetMonthsQueryOptions>;
+};
+
+export const useGetBudgetMonths = ({ queryConfig }: UseGetBudgetMonthsParams = {}) => {
+  return useQuery({
+    ...getBudgetMonthsQueryOptions(),
     ...queryConfig,
   });
 };
