@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import {
-  POPULAR_CURRENCIES,
   searchCurrencies,
   type Currency,
 } from "@/lib/currencies";
