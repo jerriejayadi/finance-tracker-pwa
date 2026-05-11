@@ -124,13 +124,13 @@ export function LoginForm() {
 
     {/* Social auth */}
     <div className="flex gap-2.5">
-      <button className="flex-1 h-12 rounded-sm bg-bg-1 border border-line text-fg-0 text-[14px] font-medium flex items-center justify-center gap-2 cursor-pointer hover:bg-bg-2 transition-colors">
+      {/* <button className="flex-1 h-12 rounded-sm bg-bg-1 border border-line text-fg-0 text-[14px] font-medium flex items-center justify-center gap-2 cursor-pointer hover:bg-bg-2 transition-colors">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
           <path d="M19 12.5a4.5 4.5 0 0 1 .8-2.5 4.6 4.6 0 0 0-3.6-2c-1.5 0-3 1-3.8 1s-2-1-3.4-1c-1.7 0-3.4 1-4.3 2.6-1.9 3.2-.5 7.9 1.3 10.5.9 1.3 2 2.7 3.4 2.7s1.9-.9 3.5-.9 2.1.9 3.5.9 2.4-1.3 3.3-2.6a11.4 11.4 0 0 0 1.5-3.1 4.4 4.4 0 0 1-2.2-3.6z" />
           <path d="M15 4.5A4.4 4.4 0 0 0 16 1a4.5 4.5 0 0 0-2.9 1.5A4.2 4.2 0 0 0 12 5.9a3.7 3.7 0 0 0 3-1.4z" />
         </svg>
         Apple
-      </button>
+      </button> */}
       <button
         type="button"
         onClick={() => googleSignIn.mutate(undefined)}
