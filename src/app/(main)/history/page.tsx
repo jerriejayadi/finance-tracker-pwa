@@ -30,6 +30,15 @@ import { useGetTransactions, useDeleteTransactions } from "@/services/transactio
 import { useGetCategories } from "@/services/categories/categories.hooks";
 import { useGetAccounts } from "@/services/accounts/accounts.hooks";
 import { EditTransactionDrawer } from "@/components/transactions/edit-transaction-drawer";
+import { cn } from "@/lib/utils";
+
+type SortOption = "newest" | "oldest" | "highest" | "lowest";
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "highest", label: "Highest amount" },
+  { value: "lowest", label: "Lowest amount" },
+];
 
 export default function HistoryPage() {
   const openAddTx = useAddTransaction();
@@ -41,6 +50,8 @@ export default function HistoryPage() {
   const [selectMode, setSelectMode] = React.useState(false);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [filters, setFilters] = React.useState<Filters>(DEFAULT_FILTERS);
+  const [sort, setSort] = React.useState<SortOption>("newest");
+  const [sortOpen, setSortOpen] = React.useState(false);
 
   const { data: categories = [] } = useGetCategories();
   const { data: accounts = [] } = useGetAccounts();
@@ -94,6 +105,21 @@ export default function HistoryPage() {
   const deleteTransactions = useDeleteTransactions({
     mutationConfig: { onSuccess: () => exitSelectMode() },
   });
+
+  const sortedTransactions = React.useMemo(() => {
+    const txs = [...transactions];
+    switch (sort) {
+      case "oldest":
+        return txs.sort((a, b) => a.date.localeCompare(b.date) || a.created_at.localeCompare(b.created_at));
+      case "highest":
+        return txs.sort((a, b) => Number(b.amount) - Number(a.amount));
+      case "lowest":
+        return txs.sort((a, b) => Number(a.amount) - Number(b.amount));
+      case "newest":
+      default:
+        return txs;
+    }
+  }, [transactions, sort]);
 
   // Active filter chips for display
   const activeChips = React.useMemo(() => {
@@ -239,7 +265,7 @@ export default function HistoryPage() {
       )}
 
       {/* Summary */}
-      {!isEmpty && <HistorySummary transactions={transactions} />}
+      {!isEmpty && <HistorySummary transactions={sortedTransactions} />}
 
       {/* Filter strip */}
       {!isEmpty && !selectMode && (
@@ -284,11 +310,40 @@ export default function HistoryPage() {
       {/* Result count + sort */}
       {!isEmpty && !isNoResults && !selectMode && (
         <div className="flex justify-between items-center px-5 text-[11px] text-fg-2 font-mono uppercase tracking-[0.05em]">
-          <span>{transactions.length} transactions</span>
-          <button className="flex items-center gap-1 text-fg-1 normal-case tracking-normal cursor-pointer hover:text-fg-0">
-            Newest first
-            <ChevronDown size={11} strokeWidth={1.75} />
-          </button>
+          <span>{sortedTransactions.length} transactions</span>
+          <div className="relative">
+            <button
+              onClick={() => setSortOpen(!sortOpen)}
+              className="flex items-center gap-1 text-fg-1 normal-case tracking-normal cursor-pointer hover:text-fg-0"
+            >
+              {SORT_OPTIONS.find((o) => o.value === sort)?.label}
+              <ChevronDown size={11} strokeWidth={1.75} />
+            </button>
+            {sortOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setSortOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 z-40 w-40 rounded-lg bg-bg-1 border border-line shadow-lg py-1">
+                  {SORT_OPTIONS.map((o) => (
+                    <button
+                      key={o.value}
+                      onClick={() => {
+                        setSort(o.value);
+                        setSortOpen(false);
+                      }}
+                      className={cn(
+                        "w-full px-3 py-2 text-left text-[12px] cursor-pointer transition-colors",
+                        sort === o.value
+                          ? "text-brand bg-brand-soft font-medium"
+                          : "text-fg-1 hover:bg-bg-2"
+                      )}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -312,7 +367,7 @@ export default function HistoryPage() {
         />
       ) : !isLoading ? (
         <HistoryList
-          transactions={transactions}
+          transactions={sortedTransactions}
           selectMode={selectMode}
           selected={selected}
           onToggleSelect={toggleSelect}
