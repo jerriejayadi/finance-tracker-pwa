@@ -31,6 +31,17 @@ import * as React from "react";
 import { useAddTransaction } from "./layout";
 import { EditTransactionDrawer } from "@/components/transactions/edit-transaction-drawer";
 import type { Transaction } from "@/services/transactions/transactions.service";
+import { DashboardOnboarding } from "@/components/home/dashboard-onboarding";
+import { BudgetNudge } from "@/components/home/budget-nudge";
+import { CreateBudgetDrawer } from "@/components/budget/create-budget-drawer";
+import { CurrencyPickerDrawer } from "@/components/profile/currency-picker-drawer";
+import type { BudgetCategory } from "@/components/budget/budget-types";
+import { monthKey } from "@/components/budget/budget-constants";
+import {
+  useGetBudgets,
+  useCreateBudgets,
+} from "@/services/budgets/budgets.hooks";
+import { useGetProfile } from "@/services/profile/profile.hooks";
 
 const PERIOD_OPTIONS = [
   { value: "Day", label: "Day" },
@@ -59,6 +70,21 @@ export default function DashboardPage() {
   const [period, setPeriod] = React.useState("Month");
   const [chip, setChip] = React.useState("All");
   const [editTx, setEditTx] = React.useState<Transaction | null>(null);
+  const [createBudgetOpen, setCreateBudgetOpen] = React.useState(false);
+  const [currencyPickerOpen, setCurrencyPickerOpen] = React.useState(false);
+  const [nudgeDismissed, setNudgeDismissed] = React.useState(false);
+
+  // Budget & profile data for onboarding
+  const { data: profile } = useGetProfile();
+  const now = new Date();
+  const currentMonthKey = monthKey(now.getFullYear(), now.getMonth());
+  const { data: budgets = [] } = useGetBudgets({ monthYear: currentMonthKey });
+
+  const createBudgets = useCreateBudgets({
+    mutationConfig: {
+      onSuccess: () => setCreateBudgetOpen(false),
+    },
+  });
 
   // Compute date range
   const { dateFrom, dateTo } = React.useMemo(() => {
@@ -140,11 +166,49 @@ export default function DashboardPage() {
   // Month label
   const monthLabel = format(new Date(), "MMMM \u00B7 yyyy");
 
+  const currency = profile?.currency_preference ?? "IDR";
+  const hasBudgets = budgets.length > 0;
+  const hasTransactions = recentTx.length > 0;
+  const showOnboarding = !hasTransactions;
+
+  const handleBudgetSave = (rows: BudgetCategory[]) => {
+    const payloads = rows.map((r) => {
+      const cat = categories.find((c) => c.name === r.name);
+      return {
+        month_year: currentMonthKey,
+        category: r.name,
+        category_id: cat?.id,
+        planned_amount: r.budget,
+        currency,
+      };
+    });
+    createBudgets.mutate(payloads);
+  };
+
   return (
     <main className="flex flex-col gap-4">
-      {/* Balance hero */}
-      
-      <section className="bg-bg-1 border-line relative mx-4 overflow-hidden rounded-lg border p-[22px_22px_20px]">
+      {showOnboarding ? (
+        <DashboardOnboarding
+          currencyLabel={currency}
+          hasBudgets={hasBudgets}
+          onChangeCurrency={() => setCurrencyPickerOpen(true)}
+          onCreateBudget={() => setCreateBudgetOpen(true)}
+          onAddTransaction={() => openAddTx("expense")}
+        />
+      ) : (
+        <>
+          {/* Budget nudge */}
+          {!hasBudgets && !nudgeDismissed && (
+            <BudgetNudge
+              month={format(now, "MMMM")}
+              onSetup={() => setCreateBudgetOpen(true)}
+              onDismiss={() => setNudgeDismissed(true)}
+            />
+          )}
+
+          {/* Balance hero */}
+
+          <section className="bg-bg-1 border-line relative mx-4 overflow-hidden rounded-lg border p-[22px_22px_20px]">
 
         {/* Brand glow */}
         <div className="bg-brand-soft pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full blur-[40px]" />
@@ -292,6 +356,23 @@ export default function DashboardPage() {
         }}
         transaction={editTx}
       />
+        </>
+      )}
+
+      {/* Drawers — always mounted regardless of onboarding state */}
+      <CreateBudgetDrawer
+        open={createBudgetOpen}
+        onOpenChange={setCreateBudgetOpen}
+        year={now.getFullYear()}
+        month={now.getMonth()}
+        onSave={handleBudgetSave}
+      />
+      <CurrencyPickerDrawer
+        open={currencyPickerOpen}
+        onOpenChange={setCurrencyPickerOpen}
+        currentCurrency={currency}
+      />
+
       <div className="h-5" />
     </main>
   );
