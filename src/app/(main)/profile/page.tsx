@@ -1,6 +1,8 @@
 "use client";
 
 import { AccountsSection } from "@/components/profile/accounts-section";
+import { CurrencyPickerDrawer } from "@/components/profile/currency-picker-drawer";
+import { EditProfileDrawer } from "@/components/profile/edit-profile-drawer";
 import { Avatar } from "@/components/ui/avatar";
 import { SettingsGroup, SettingsRow } from "@/components/ui/settings-group";
 import { Toggle } from "@/components/ui/toggle";
@@ -41,6 +43,8 @@ export default function ProfilePage() {
   const [mounted, setMounted] = React.useState(false);
   const { data: profile } = useGetProfile();
 
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [currencyOpen, setCurrencyOpen] = React.useState(false);
   const [biometric, setBiometric] = React.useState(true);
   const [notifs, setNotifs] = React.useState(true);
   const [budgetAlerts, setBudgetAlerts] = React.useState(true);
@@ -88,7 +92,7 @@ export default function ProfilePage() {
         {/* Brand glow */}
         <div className="bg-brand-soft pointer-events-none absolute -top-10 -right-5 h-[140px] w-[140px] rounded-full blur-[40px]" />
 
-        <Avatar size="lg" variant="brand" className="relative z-[1]">
+        <Avatar size="lg" variant="brand" src={profile?.avatar_url} className="relative z-[1]">
           {initials}
         </Avatar>
         <div className="relative z-[1] min-w-0 flex-1">
@@ -99,7 +103,10 @@ export default function ProfilePage() {
             {email}
           </div>
         </div>
-        <button className="bg-bg-2 border-line text-fg-1 hover:bg-bg-3 relative z-[1] flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors">
+        <button
+          onClick={() => setEditOpen(true)}
+          className="bg-bg-2 border-line text-fg-1 hover:bg-bg-3 relative z-[1] flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors"
+        >
           <Edit size={16} strokeWidth={1.75} />
         </button>
       </div>
@@ -158,6 +165,7 @@ export default function ProfilePage() {
             icon={<Globe size={16} strokeWidth={1.75} />}
             label="Currency"
             value={`${currencyCode} · ${currencySymbol}`}
+            onClick={() => setCurrencyOpen(true)}
           />
           {/* <SettingsRow
             icon={<Calendar size={16} strokeWidth={1.75} />}
@@ -252,6 +260,13 @@ export default function ProfilePage() {
           FinTrack · v2.4.0 (build 218)
         </div>
       </div>
+
+      <EditProfileDrawer open={editOpen} onOpenChange={setEditOpen} />
+      <CurrencyPickerDrawer
+        open={currencyOpen}
+        onOpenChange={setCurrencyOpen}
+        currentCurrency={currencyCode}
+      />
     </div>
   );
 }
