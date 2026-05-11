@@ -333,7 +333,7 @@ function VerifyOtpStep({
             placeholder="123456"
             {...register("otp")}
             className="text-center tracking-[0.5em] font-mono text-lg"
-            maxLength={6}
+            minLength={6}
           />
           {errors.otp && (
             <p className="text-[13px] text-neg px-1">{errors.otp.message}</p>

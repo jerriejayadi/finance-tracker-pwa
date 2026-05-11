@@ -44,6 +44,19 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Authenticated user without profile → force profile setup
+  if (user && !isAuthPage) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile) {
+      return NextResponse.redirect(new URL("/register?step=profile", request.url));
+    }
+  }
+
   return supabaseResponse;
 }
 
