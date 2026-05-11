@@ -90,10 +90,6 @@ export default function ProfilePage() {
 
   const currencyCode = profile?.currency_preference ?? "IDR";
   const currencySymbol = getCurrencySymbol(currencyCode);
-  const shortName = displayName
-    ? `${displayName.split(" ")[0]} ${displayName.split(" ").slice(-1)[0]?.[0] ?? ""}.`
-    : "";
-  const firstDayLabel = profile?.first_day_of_week === 0 ? "Sun" : "Mon";
 
   return (
     <div className="flex flex-col gap-3.5 pb-8">
