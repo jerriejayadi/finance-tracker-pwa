@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { AddTransactionDrawer } from "@/components/transactions/add-transaction-drawer";
+import { Toaster } from "@/components/ui/sonner";
 import { useGetProfile } from "@/services/profile/profile.hooks";
 
 type TxType = "expense" | "income" | "transfer";
@@ -150,6 +151,7 @@ export default function DashboardLayout({
 
       {/* Add Transaction Drawer */}
       <AddTransactionDrawer open={addTxOpen} onOpenChange={setAddTxOpen} defaultType={addTxType} />
+      <Toaster />
     </div>
     </AddTxContext.Provider>
   );
