@@ -365,9 +365,11 @@ export function AddTransactionDrawer({
     },
   });
 
-  // Only show categories that have budgets defined for current month
+  // Show budgeted categories, or a single "Uncategorized" fallback when no budgets exist
+  const UNCATEGORIZED_TILE = { id: "__uncategorized__", name: "Uncategorized", icon: "📝" };
+
   const displayCategories = React.useMemo(() => {
-    if (budgets.length === 0) return [];
+    if (budgets.length === 0) return [UNCATEGORIZED_TILE];
     const budgetCategoryIds = new Set(budgets.map((b) => b.category_id).filter(Boolean));
     const budgetCategoryNames = new Set(budgets.map((b) => b.category));
     return categories.filter(
@@ -458,12 +460,13 @@ export function AddTransactionDrawer({
   const segIdx = type === "expense" ? 0 : type === "income" ? 1 : 2;
 
   const handleSave = () => {
-    const selectedCategory = categories.find((c) => c.id === cat);
+    const isUncategorized = cat === "__uncategorized__";
+    const selectedCategory = isUncategorized ? null : categories.find((c) => c.id === cat);
     createTransaction.mutate({
       account_id: acctKey,
-      category_id: cat,
+      category_id: isUncategorized ? undefined : cat,
       type: type === "expense" ? "Expense" : type === "income" ? "Income" : "Transfer",
-      category: selectedCategory?.name ?? "",
+      category: isUncategorized ? "Uncategorized" : (selectedCategory?.name ?? ""),
       amount: amount,
       currency: profile?.currency_preference ?? "IDR",
       date: format(date, "yyyy-MM-dd"),
