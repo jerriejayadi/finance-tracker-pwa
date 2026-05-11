@@ -9,8 +9,12 @@ import { Toggle } from "@/components/ui/toggle";
 import { useSignOutMutation } from "@/services/auth/auth.hooks";
 import { useGetProfile } from "@/services/profile/profile.hooks";
 import {
+  useGetTransactionCount,
+  useGetTransactionStreak,
+  useGetYearlySummary,
+} from "@/services/transactions/transactions.hooks";
+import {
   Bell,
-  Calendar,
   Crown,
   Edit,
   Globe,
@@ -19,7 +23,6 @@ import {
   Moon,
   Star,
   Sun,
-  User,
   Wallet,
 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -43,9 +46,26 @@ export default function ProfilePage() {
   const [mounted, setMounted] = React.useState(false);
   const { data: profile } = useGetProfile();
 
+  const { data: txCount = 0 } = useGetTransactionCount();
+  const { data: streak = 0 } = useGetTransactionStreak();
+  const currentYear = new Date().getFullYear();
+  const { data: thisYearSummary } = useGetYearlySummary({ year: currentYear });
+  const { data: lastYearSummary } = useGetYearlySummary({ year: currentYear - 1 });
+
+  const savingsPercent = React.useMemo(() => {
+    if (!thisYearSummary) return null;
+    const thisYearSavings = thisYearSummary.totalIncome - thisYearSummary.totalExpense;
+    if (!lastYearSummary) {
+      if (thisYearSummary.totalIncome === 0) return null;
+      return Math.round((thisYearSavings / thisYearSummary.totalIncome) * 100);
+    }
+    const lastYearSavings = lastYearSummary.totalIncome - lastYearSummary.totalExpense;
+    if (lastYearSavings === 0) return null;
+    return Math.round(((thisYearSavings - lastYearSavings) / Math.abs(lastYearSavings)) * 100);
+  }, [thisYearSummary, lastYearSummary]);
+
   const [editOpen, setEditOpen] = React.useState(false);
   const [currencyOpen, setCurrencyOpen] = React.useState(false);
-  const [biometric, setBiometric] = React.useState(true);
   const [notifs, setNotifs] = React.useState(true);
   const [budgetAlerts, setBudgetAlerts] = React.useState(true);
 
@@ -112,13 +132,13 @@ export default function ProfilePage() {
       </div>
 
       {/* Stats strip */}
-      <div className="border-line bg-bg-1 mx-4 grid grid-cols-2 overflow-hidden rounded-md border">
+      <div className="border-line bg-bg-1 mx-4 grid grid-cols-3 overflow-hidden rounded-md border">
         <div className="border-line border-r p-3.5">
           <div className="text-fg-2 text-[10px] tracking-[0.06em] uppercase">
             Tracked
           </div>
           <div className="mt-1 font-mono text-[18px] font-medium tracking-[-0.01em] tabular-nums">
-            247
+            {txCount.toLocaleString()}
           </div>
           <div className="text-fg-2 mt-0.5 font-mono text-[11px]">
             transactions
@@ -128,22 +148,22 @@ export default function ProfilePage() {
           <div className="text-fg-2 text-[10px] tracking-[0.06em] uppercase">
             Saved
           </div>
-          <div className="text-pos mt-1 font-mono text-[18px] font-medium tracking-[-0.01em] tabular-nums">
-            + 18%
+          <div className={`mt-1 font-mono text-[18px] font-medium tracking-[-0.01em] tabular-nums ${savingsPercent !== null && savingsPercent >= 0 ? "text-pos" : "text-neg"}`}>
+            {savingsPercent !== null ? `${savingsPercent >= 0 ? "+" : ""}${savingsPercent}%` : "\u2014"}
           </div>
           <div className="text-fg-2 mt-0.5 font-mono text-[11px]">
-            vs last yr
+            {lastYearSummary ? "vs last yr" : "savings rate"}
           </div>
         </div>
-        {/* <div className="p-3.5">
-          <div className="text-[10px] text-fg-2 uppercase tracking-[0.06em]">
+        <div className="p-3.5">
+          <div className="text-fg-2 text-[10px] tracking-[0.06em] uppercase">
             Streak
           </div>
-          <div className="font-mono tabular-nums text-[18px] font-medium mt-1 tracking-[-0.01em]">
-            42
+          <div className="mt-1 font-mono text-[18px] font-medium tracking-[-0.01em] tabular-nums">
+            {streak}
           </div>
-          <div className="text-[11px] text-fg-2 font-mono mt-0.5">days</div>
-        </div> */}
+          <div className="text-fg-2 mt-0.5 font-mono text-[11px]">days</div>
+        </div>
       </div>
 
       {/* Settings sections */}
