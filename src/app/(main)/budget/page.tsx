@@ -64,6 +64,8 @@ function BudgetPageContent() {
   const [editOpen, setEditOpen] = React.useState(false);
   const [copyDrawerOpen, setCopyDrawerOpen] = React.useState(false);
   const [copyFromMonth, setCopyFromMonth] = React.useState<string | null>(null);
+  const [reallocateCategories, setReallocateCategories] = React.useState<BudgetCategory[] | null>(null);
+  const [reallocateHighlights, setReallocateHighlights] = React.useState<string[]>([]);
 
   const key = monthKey(year, month);
 
@@ -180,6 +182,17 @@ function BudgetPageContent() {
     }
   };
 
+  const handleReallocate = (fromId: string, toId: string, amount: number) => {
+    const adjusted = (cats ?? []).map((c) => {
+      if (c.id === fromId) return { ...c, budget: Math.max(0, c.budget - amount) };
+      if (c.id === toId) return { ...c, budget: c.budget + amount };
+      return c;
+    });
+    setReallocateCategories(adjusted);
+    setReallocateHighlights([fromId, toId]);
+    setEditOpen(true);
+  };
+
   return (
     <main className="flex flex-col gap-4 pb-4">
       {/* Month stepper header */}
@@ -278,7 +291,11 @@ function BudgetPageContent() {
           </div>
 
           <BudgetCategoryList categories={filtered} />
-          <BudgetInsight month={month} />
+          <BudgetInsight
+            month={month}
+            categories={cats}
+            onReallocate={handleReallocate}
+          />
 
           {/* Add category CTA */}
           <button
@@ -337,12 +354,19 @@ function BudgetPageContent() {
       {cats && (
         <EditBudgetDrawer
           open={editOpen}
-          onOpenChange={setEditOpen}
+          onOpenChange={(open) => {
+            setEditOpen(open);
+            if (!open) {
+              setReallocateCategories(null);
+              setReallocateHighlights([]);
+            }
+          }}
           year={year}
           month={month}
-          categories={cats}
+          categories={reallocateCategories ?? cats}
           onSave={handleEditSave}
           onDelete={handleEditDelete}
+          highlightedIds={reallocateHighlights}
         />
       )}
     </main>

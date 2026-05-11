@@ -22,6 +22,7 @@ interface EditBudgetDrawerProps {
   categories: BudgetCategory[];
   onSave: (rows: BudgetCategory[]) => void;
   onDelete: (ids: string[]) => void;
+  highlightedIds?: string[];
 }
 
 export function EditBudgetDrawer({
@@ -32,6 +33,7 @@ export function EditBudgetDrawer({
   categories,
   onSave,
   onDelete,
+  highlightedIds = [],
 }: EditBudgetDrawerProps) {
   const [rows, setRows] = React.useState<CreateBudgetRow[]>([]);
   const [editingId, setEditingId] = React.useState<string | null>(null);
@@ -155,7 +157,9 @@ export function EditBudgetDrawer({
                   className={cn(
                     "p-3 rounded-lg border transition-colors",
                     r.enabled
-                      ? "bg-bg-1 border-line"
+                      ? highlightedIds.includes(r.id)
+                        ? "bg-brand-soft/30 border-brand ring-1 ring-brand/20"
+                        : "bg-bg-1 border-line"
                       : "bg-bg-0 border-line/50 opacity-60"
                   )}
                 >
