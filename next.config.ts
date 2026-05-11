@@ -11,7 +11,7 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["192.168.132.152"],
+  allowedDevOrigins: [process.env.DEV_ORIGIN || "http://localhost:3000"], // Allow the development origin for PWA features
 };
 
 export default withPWA(nextConfig);

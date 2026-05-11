@@ -71,7 +71,14 @@ export function RegisterForm() {
 
   const registerMutation = useRegisterMutation({
     mutationConfig: {
-      onSuccess: () => setStep("VERIFY_OTP"),
+      onSuccess: (_data, variables) => {
+        // Also resend OTP in case user already exists but is unverified
+        const email = "email" in variables ? variables.email : undefined;
+        if (email) {
+          resendOtpMutation.mutate({ type: "signup", email });
+        }
+        setStep("VERIFY_OTP");
+      },
     },
   });
 

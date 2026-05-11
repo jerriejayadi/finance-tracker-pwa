@@ -90,7 +90,6 @@ export default function BudgetPage() {
     if (copyFromMonth && copySourceData && copySourceData.length > 0) {
       setCopyFromPrev(true);
       setCreateOpen(true);
-      setCopyFromMonth(null);
     }
   }, [copyFromMonth, copySourceData]);
 
@@ -289,7 +288,13 @@ export default function BudgetPage() {
       />
       <CreateBudgetDrawer
         open={createOpen}
-        onOpenChange={setCreateOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open) {
+            setCopyFromPrev(false);
+            setCopyFromMonth(null);
+          }
+        }}
         year={year}
         month={month}
         onSave={handleSave}
