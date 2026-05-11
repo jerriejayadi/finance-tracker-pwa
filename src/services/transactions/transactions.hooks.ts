@@ -13,6 +13,9 @@ export const transactionKeys = {
   filtered: (filters: TransactionFilters) => ["transactions", filters] as const,
   summary: (dateFrom: string, dateTo: string) =>
     ["transactions", "summary", dateFrom, dateTo] as const,
+  count: () => ["transactions", "count"] as const,
+  streak: () => ["transactions", "streak"] as const,
+  yearlySummary: (year: number) => ["transactions", "yearly-summary", year] as const,
 };
 
 export const getTransactionsQueryOptions = (filters: TransactionFilters = {}) => ({
@@ -113,5 +116,40 @@ export const useDeleteTransactions = ({
       queryClient.invalidateQueries({ queryKey: accountKeys.balances });
       mutationConfig?.onSuccess?.(...args);
     },
+  });
+};
+
+export const getTransactionCountQueryOptions = () => ({
+  queryKey: transactionKeys.count(),
+  queryFn: () => transactionsService.getTransactionCount(),
+});
+
+export const useGetTransactionCount = () => {
+  return useQuery(getTransactionCountQueryOptions());
+};
+
+export const getTransactionStreakQueryOptions = () => ({
+  queryKey: transactionKeys.streak(),
+  queryFn: () => transactionsService.getTransactionStreak(),
+});
+
+export const useGetTransactionStreak = () => {
+  return useQuery(getTransactionStreakQueryOptions());
+};
+
+export const getYearlySummaryQueryOptions = (year: number) => ({
+  queryKey: transactionKeys.yearlySummary(year),
+  queryFn: () => transactionsService.getYearlySummary(year),
+});
+
+type UseGetYearlySummaryParams = {
+  year: number;
+  queryConfig?: QueryConfig<typeof getYearlySummaryQueryOptions>;
+};
+
+export const useGetYearlySummary = ({ year, queryConfig }: UseGetYearlySummaryParams) => {
+  return useQuery({
+    ...getYearlySummaryQueryOptions(year),
+    ...queryConfig,
   });
 };

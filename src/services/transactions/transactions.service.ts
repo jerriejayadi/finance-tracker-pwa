@@ -178,4 +178,61 @@ export const transactionsService = {
 
     if (error) throw new Error(error.message);
   },
+
+  getTransactionCount: async (): Promise<number> => {
+    const { count, error } = await supabase
+      .from("transactions")
+      .select("*", { count: "exact", head: true });
+
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  },
+
+  getTransactionStreak: async (): Promise<number> => {
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("date")
+      .order("date", { ascending: false });
+
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) return 0;
+
+    const uniqueDates = [...new Set(data.map((r) => r.date))];
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let streak = 0;
+    const checkDate = new Date(today);
+
+    for (let i = 0; i < 365; i++) {
+      const dateStr = checkDate.toISOString().split("T")[0];
+      if (uniqueDates.includes(dateStr)) {
+        streak++;
+      } else if (i > 0) {
+        break;
+      }
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+    return streak;
+  },
+
+  getYearlySummary: async (year: number): Promise<TransactionSummary> => {
+    const dateFrom = `${year}-01-01`;
+    const dateTo = `${year}-12-31`;
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("type, amount")
+      .gte("date", dateFrom)
+      .lte("date", dateTo);
+
+    if (error) throw new Error(error.message);
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+    for (const row of data ?? []) {
+      if (row.type === "Income") totalIncome += Number(row.amount);
+      else if (row.type === "Expense") totalExpense += Number(row.amount);
+    }
+    return { totalIncome, totalExpense };
+  },
 };
