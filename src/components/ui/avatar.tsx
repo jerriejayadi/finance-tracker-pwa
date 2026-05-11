@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: "sm" | "md" | "lg";
   variant?: "default" | "brand";
+  src?: string | null;
 }
 
 const sizeClasses = {
@@ -13,12 +14,12 @@ const sizeClasses = {
 };
 
 const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
-  ({ className, size = "md", variant = "default", children, ...props }, ref) => {
+  ({ className, size = "md", variant = "default", src, children, ...props }, ref) => {
     return (
       <div
         ref={ref}
         className={cn(
-          "flex items-center justify-center font-semibold flex-shrink-0",
+          "flex items-center justify-center font-semibold flex-shrink-0 overflow-hidden",
           sizeClasses[size],
           variant === "brand"
             ? "bg-brand text-brand-ink"
@@ -27,7 +28,16 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
         )}
         {...props}
       >
-        {children}
+        {src ? (
+          <img
+            src={src}
+            alt=""
+            className="h-full w-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          children
+        )}
       </div>
     );
   }
