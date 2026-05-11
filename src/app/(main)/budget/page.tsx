@@ -25,6 +25,7 @@ import {
   Tag,
 } from "lucide-react";
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { useGetBudgets, useCreateBudgets, useUpdateBudget, useDeleteBudget, useGetBudgetMonths } from "@/services/budgets/budgets.hooks";
 import { useGetCategories } from "@/services/categories/categories.hooks";
 import { useGetProfile } from "@/services/profile/profile.hooks";
@@ -37,12 +38,28 @@ function pctOf(spent: number, budget: number): number {
 type FilterType = "all" | "active" | "over";
 
 export default function BudgetPage() {
+  return (
+    <React.Suspense>
+      <BudgetPageContent />
+    </React.Suspense>
+  );
+}
+
+function BudgetPageContent() {
+  const searchParams = useSearchParams();
   const now = new Date();
   const [year, setYear] = React.useState(now.getFullYear());
   const [month, setMonth] = React.useState(now.getMonth());
   const [filter, setFilter] = React.useState<FilterType>("all");
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
+
+  // Auto-open create drawer when navigated with ?create=true
+  React.useEffect(() => {
+    if (searchParams.get("create") === "true") {
+      setCreateOpen(true);
+    }
+  }, [searchParams]);
   const [copyFromPrev, setCopyFromPrev] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [copyDrawerOpen, setCopyDrawerOpen] = React.useState(false);

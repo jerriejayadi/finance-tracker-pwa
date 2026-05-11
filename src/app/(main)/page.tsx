@@ -33,15 +33,11 @@ import { EditTransactionDrawer } from "@/components/transactions/edit-transactio
 import type { Transaction } from "@/services/transactions/transactions.service";
 import { DashboardOnboarding } from "@/components/home/dashboard-onboarding";
 import { BudgetNudge } from "@/components/home/budget-nudge";
-import { CreateBudgetDrawer } from "@/components/budget/create-budget-drawer";
 import { CurrencyPickerDrawer } from "@/components/profile/currency-picker-drawer";
-import type { BudgetCategory } from "@/components/budget/budget-types";
 import { monthKey } from "@/components/budget/budget-constants";
-import {
-  useGetBudgets,
-  useCreateBudgets,
-} from "@/services/budgets/budgets.hooks";
+import { useGetBudgets } from "@/services/budgets/budgets.hooks";
 import { useGetProfile } from "@/services/profile/profile.hooks";
+import { useRouter } from "next/navigation";
 
 const PERIOD_OPTIONS = [
   { value: "Day", label: "Day" },
@@ -67,10 +63,10 @@ function formatDayLabel(dateStr: string): string {
 
 export default function DashboardPage() {
   const openAddTx = useAddTransaction();
+  const router = useRouter();
   const [period, setPeriod] = React.useState("Month");
   const [chip, setChip] = React.useState("All");
   const [editTx, setEditTx] = React.useState<Transaction | null>(null);
-  const [createBudgetOpen, setCreateBudgetOpen] = React.useState(false);
   const [currencyPickerOpen, setCurrencyPickerOpen] = React.useState(false);
   const [nudgeDismissed, setNudgeDismissed] = React.useState(false);
 
@@ -79,12 +75,6 @@ export default function DashboardPage() {
   const now = new Date();
   const currentMonthKey = monthKey(now.getFullYear(), now.getMonth());
   const { data: budgets = [] } = useGetBudgets({ monthYear: currentMonthKey });
-
-  const createBudgets = useCreateBudgets({
-    mutationConfig: {
-      onSuccess: () => setCreateBudgetOpen(false),
-    },
-  });
 
   // Compute date range
   const { dateFrom, dateTo } = React.useMemo(() => {
@@ -171,19 +161,7 @@ export default function DashboardPage() {
   const hasTransactions = recentTx.length > 0;
   const showOnboarding = !hasTransactions;
 
-  const handleBudgetSave = (rows: BudgetCategory[]) => {
-    const payloads = rows.map((r) => {
-      const cat = categories.find((c) => c.name === r.name);
-      return {
-        month_year: currentMonthKey,
-        category: r.name,
-        category_id: cat?.id,
-        planned_amount: r.budget,
-        currency,
-      };
-    });
-    createBudgets.mutate(payloads);
-  };
+  const navigateToBudgetCreate = () => router.push("/budget?create=true");
 
   return (
     <main className="flex flex-col gap-4">
@@ -192,7 +170,7 @@ export default function DashboardPage() {
           currencyLabel={currency}
           hasBudgets={hasBudgets}
           onChangeCurrency={() => setCurrencyPickerOpen(true)}
-          onCreateBudget={() => setCreateBudgetOpen(true)}
+          onCreateBudget={navigateToBudgetCreate}
           onAddTransaction={() => openAddTx("expense")}
         />
       ) : (
@@ -201,7 +179,7 @@ export default function DashboardPage() {
           {!hasBudgets && !nudgeDismissed && (
             <BudgetNudge
               month={format(now, "MMMM")}
-              onSetup={() => setCreateBudgetOpen(true)}
+              onSetup={navigateToBudgetCreate}
               onDismiss={() => setNudgeDismissed(true)}
             />
           )}
@@ -359,14 +337,7 @@ export default function DashboardPage() {
         </>
       )}
 
-      {/* Drawers — always mounted regardless of onboarding state */}
-      <CreateBudgetDrawer
-        open={createBudgetOpen}
-        onOpenChange={setCreateBudgetOpen}
-        year={now.getFullYear()}
-        month={now.getMonth()}
-        onSave={handleBudgetSave}
-      />
+      {/* Currency picker — always mounted */}
       <CurrencyPickerDrawer
         open={currencyPickerOpen}
         onOpenChange={setCurrencyPickerOpen}
