@@ -41,3 +41,35 @@ export const useUpdateProfile = ({
     ...mutationConfig,
   });
 };
+
+type UseUploadAvatarParams = {
+  mutationConfig?: MutationConfig<typeof profileService.uploadAvatar>;
+};
+
+export const useUploadAvatar = ({
+  mutationConfig,
+}: UseUploadAvatarParams = {}) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => profileService.uploadAvatar(file),
+    onSuccess: (...args) => {
+      queryClient.invalidateQueries({ queryKey: profileKeys.all });
+      mutationConfig?.onSuccess?.(...args);
+    },
+    ...mutationConfig,
+  });
+};
+
+type UseUpdateEmailParams = {
+  mutationConfig?: MutationConfig<typeof profileService.updateEmail>;
+};
+
+export const useUpdateEmail = ({
+  mutationConfig,
+}: UseUpdateEmailParams = {}) => {
+  return useMutation({
+    mutationFn: (email: string) => profileService.updateEmail(email),
+    ...mutationConfig,
+  });
+};

@@ -69,4 +69,38 @@ export const profileService = {
 
     return data;
   },
+
+  uploadAvatar: async (file: File): Promise<string> => {
+    const { data: authData, error: authError } =
+      await supabase.auth.getUser();
+
+    if (authError || !authData.user) {
+      throw new Error(authError?.message ?? "Not authenticated");
+    }
+
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const path = `${authData.user.id}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
+
+    if (uploadError) {
+      throw new Error(uploadError.message);
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(path);
+
+    // Append cache-bust param so browser refetches after update
+    return `${urlData.publicUrl}?t=${Date.now()}`;
+  },
+
+  updateEmail: async (newEmail: string): Promise<void> => {
+    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    if (error) {
+      throw new Error(error.message);
+    }
+  },
 };
