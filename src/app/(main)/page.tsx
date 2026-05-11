@@ -10,6 +10,7 @@ import { useGetCategories } from "@/services/categories/categories.hooks";
 import {
   useGetTransactions,
   useGetTransactionSummary,
+  useGetTransactionCount,
 } from "@/services/transactions/transactions.hooks";
 import {
   endOfMonth,
@@ -38,6 +39,7 @@ import { monthKey } from "@/components/budget/budget-constants";
 import { useGetBudgets } from "@/services/budgets/budgets.hooks";
 import { useGetProfile } from "@/services/profile/profile.hooks";
 import { useRouter } from "next/navigation";
+import { MonthPickerDrawer } from "@/components/budget/month-picker-drawer";
 
 const PERIOD_OPTIONS = [
   { value: "Day", label: "Day" },
@@ -64,21 +66,36 @@ function formatDayLabel(dateStr: string): string {
 export default function DashboardPage() {
   const openAddTx = useAddTransaction();
   const router = useRouter();
+  const now = new Date();
   const [period, setPeriod] = React.useState("Month");
   const [chip, setChip] = React.useState("All");
   const [editTx, setEditTx] = React.useState<Transaction | null>(null);
   const [currencyPickerOpen, setCurrencyPickerOpen] = React.useState(false);
   const [nudgeDismissed, setNudgeDismissed] = React.useState(false);
+  const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth());
+  const [monthPickerOpen, setMonthPickerOpen] = React.useState(false);
 
   // Budget & profile data for onboarding
   const { data: profile } = useGetProfile();
-  const now = new Date();
   const currentMonthKey = monthKey(now.getFullYear(), now.getMonth());
   const { data: budgets = [] } = useGetBudgets({ monthYear: currentMonthKey });
 
   // Compute date range
   const { dateFrom, dateTo } = React.useMemo(() => {
     const today = new Date();
+    const isCurrentMonth =
+      selectedYear === today.getFullYear() && selectedMonth === today.getMonth();
+
+    if (!isCurrentMonth) {
+      const start = new Date(selectedYear, selectedMonth, 1);
+      const end = endOfMonth(start);
+      return {
+        dateFrom: format(start, "yyyy-MM-dd"),
+        dateTo: format(end, "yyyy-MM-dd"),
+      };
+    }
+
     switch (period) {
       case "Day":
         return {
@@ -87,10 +104,7 @@ export default function DashboardPage() {
         };
       case "Week":
         return {
-          dateFrom: format(
-            startOfWeek(today, { weekStartsOn: 1 }),
-            "yyyy-MM-dd",
-          ),
+          dateFrom: format(startOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd"),
           dateTo: format(endOfWeek(today, { weekStartsOn: 1 }), "yyyy-MM-dd"),
         };
       case "Year":
@@ -105,7 +119,7 @@ export default function DashboardPage() {
           dateTo: format(endOfMonth(today), "yyyy-MM-dd"),
         };
     }
-  }, [period]);
+  }, [period, selectedYear, selectedMonth]);
 
   const { data: accountBalances = [] } = useGetAccountBalances();
   const { data: recentTx = [] } = useGetTransactions({
@@ -154,12 +168,13 @@ export default function DashboardPage() {
   }, [recentTx]);
 
   // Month label
-  const monthLabel = format(new Date(), "MMMM \u00B7 yyyy");
+  const monthLabel = format(new Date(selectedYear, selectedMonth), "MMMM \u00B7 yyyy");
+
+  const { data: totalTxCount = 0 } = useGetTransactionCount();
 
   const currency = profile?.currency_preference ?? "IDR";
   const hasBudgets = budgets.length > 0;
-  const hasTransactions = recentTx.length > 0;
-  const showOnboarding = !hasTransactions;
+  const showOnboarding = totalTxCount === 0;
 
   const navigateToBudgetCreate = () => router.push("/budget?create=true");
 
@@ -195,7 +210,7 @@ export default function DashboardPage() {
           <div className="text-fg-2 text-[11px] font-medium tracking-[0.06em] uppercase">
             Total balance
           </div>
-          <button className="bg-bg-2 border-line text-fg-1 inline-flex h-6 cursor-pointer items-center gap-1 rounded-full border px-2.5 font-mono text-[11px]">
+          <button onClick={() => setMonthPickerOpen(true)} className="bg-bg-2 border-line text-fg-1 inline-flex h-6 cursor-pointer items-center gap-1 rounded-full border px-2.5 font-mono text-[11px]">
             {monthLabel} <ChevronDown size={12} strokeWidth={1.75} />
           </button>
         </div>
@@ -296,11 +311,6 @@ export default function DashboardPage() {
 
       {/* Transaction list */}
       <div className="flex flex-col gap-0.5 px-4">
-        {groups.length === 0 && (
-          <div className="text-fg-2 flex justify-center py-8 text-[13px]">
-            No transactions yet
-          </div>
-        )}
         {groups.map((g) => (
           <React.Fragment key={g.day}>
             <div className="text-fg-2 flex items-baseline justify-between px-1 pt-3.5 pb-1.5 text-[11px] tracking-[0.04em] uppercase">
@@ -326,7 +336,23 @@ export default function DashboardPage() {
           </React.Fragment>
         ))}
       </div>
+      {groups.length === 0 && (
+        <div className="text-fg-2 flex justify-center py-8 text-[13px]">
+          No transactions this period
+        </div>
+      )}
         {/* <Input type="text" className="sticky bottom-20" /> */}
+      <MonthPickerDrawer
+        open={monthPickerOpen}
+        onOpenChange={setMonthPickerOpen}
+        year={selectedYear}
+        month={selectedMonth}
+        onPick={(y, m) => {
+          setSelectedYear(y);
+          setSelectedMonth(m);
+        }}
+        createdBudgets={{}}
+      />
       <EditTransactionDrawer
         open={!!editTx}
         onOpenChange={(open) => {
