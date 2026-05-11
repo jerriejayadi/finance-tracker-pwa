@@ -17,6 +17,7 @@ import {
   useUploadAvatar,
   useUpdateEmail,
 } from "@/services/profile/profile.hooks";
+import { AvatarCropDrawer } from "@/components/profile/avatar-crop-drawer";
 import { Camera } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { valibotResolver } from "@hookform/resolvers/valibot";
@@ -54,6 +55,8 @@ export function EditProfileDrawer({
 
   const [avatarFile, setAvatarFile] = React.useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = React.useState<string | null>(null);
+  const [cropSrc, setCropSrc] = React.useState<string | null>(null);
+  const [cropOpen, setCropOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const {
@@ -69,12 +72,13 @@ export function EditProfileDrawer({
     },
   });
 
-  // Clean up blob URL on unmount or when file changes
+  // Clean up blob URLs on unmount
   React.useEffect(() => {
     return () => {
       if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+      if (cropSrc) URL.revokeObjectURL(cropSrc);
     };
-  }, [avatarPreview]);
+  }, [avatarPreview, cropSrc]);
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -85,17 +89,46 @@ export function EditProfileDrawer({
       return;
     }
 
+    // Open crop drawer with selected image
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    const src = URL.createObjectURL(file);
+    setCropSrc(src);
+    setCropOpen(true);
+
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+  };
+
+  const handleCropDone = (blob: Blob) => {
+    // Create File from cropped blob for upload
+    const croppedFile = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+    setAvatarFile(croppedFile);
+
+    // Preview the cropped result
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarPreview(URL.createObjectURL(blob));
+
+    // Clean up crop state
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setCropOpen(false);
+  };
+
+  const handleCropCancel = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setCropOpen(false);
   };
 
   const handleClose = (isOpen: boolean) => {
     if (!isOpen) {
       // Discard unsaved changes
       if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+      if (cropSrc) URL.revokeObjectURL(cropSrc);
       setAvatarFile(null);
       setAvatarPreview(null);
+      setCropSrc(null);
+      setCropOpen(false);
       reset();
     }
     onOpenChange(isOpen);
@@ -237,6 +270,13 @@ export function EditProfileDrawer({
           </div>
         </form>
       </DrawerContent>
+
+      <AvatarCropDrawer
+        open={cropOpen}
+        imageSrc={cropSrc}
+        onCrop={handleCropDone}
+        onCancel={handleCropCancel}
+      />
     </Drawer>
   );
 }
