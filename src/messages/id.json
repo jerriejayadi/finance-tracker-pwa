@@ -100,7 +100,12 @@
     "preferredLanguage": "Bahasa pilihan",
     "completeSetup": "Selesaikan pengaturan",
     "saving": "Menyimpan...",
-    "getStarted": "Mulai sekarang"
+    "getStarted": "Mulai sekarang",
+    "welcomeBack": "Selamat",
+    "welcomeBackHighlight": "datang kembali.",
+    "signInSubtitle": "Masuk untuk melanjutkan dari terakhir kali.",
+    "newToFinTrack": "Baru di FinTrack?",
+    "signInLink": "Masuk"
   },
   "onboarding": {
     "slide1Title": "Lacak setiap koin",

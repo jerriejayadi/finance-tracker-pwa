@@ -100,7 +100,12 @@
     "preferredLanguage": "Preferred language",
     "completeSetup": "Complete setup",
     "saving": "Saving...",
-    "getStarted": "Get started"
+    "getStarted": "Get started",
+    "welcomeBack": "Welcome",
+    "welcomeBackHighlight": "back.",
+    "signInSubtitle": "Sign in to pick up where you left off.",
+    "newToFinTrack": "New to FinTrack?",
+    "signInLink": "Sign in"
   },
   "onboarding": {
     "slide1Title": "Track every coin",

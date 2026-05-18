@@ -2,39 +2,9 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
-import { Repeat } from "lucide-react";
-
-const SLIDES = [
-  {
-    title: (
-      <>
-        Track every coin <span className="text-brand">that moves.</span>
-      </>
-    ),
-    body: "Log expenses and income in two taps. Numbers stay aligned, your head stays clear.",
-    art: "balance" as const,
-  },
-  {
-    title: (
-      <>
-        Budgets that <span className="text-brand">breathe.</span>
-      </>
-    ),
-    body: "Set a monthly limit per category. We tell you quietly when you're near it.",
-    art: "budget" as const,
-  },
-  {
-    title: (
-      <>
-        See where it <span className="text-brand">all goes.</span>
-      </>
-    ),
-    body: "Weekly rhythms, category breakdowns, and the recurring bills you forgot about.",
-    art: "insights" as const,
-  },
-];
 
 const STORAGE_KEY = "fintrack_onboarding_seen";
 
@@ -175,6 +145,28 @@ function OnbArt({ kind }: { kind: "balance" | "budget" | "insights" }) {
 
 export function OnboardingCarousel() {
   const router = useRouter();
+  const t = useTranslations("onboarding");
+  const tCommon = useTranslations("common");
+  const tAuth = useTranslations("auth");
+
+  const SLIDES = [
+    {
+      title: (<>{t("slide1Title")} <span className="text-brand">{t("slide1Highlight")}</span></>),
+      body: t("slide1Body"),
+      art: "balance" as const,
+    },
+    {
+      title: (<>{t("slide2Title")} <span className="text-brand">{t("slide2Highlight")}</span></>),
+      body: t("slide2Body"),
+      art: "budget" as const,
+    },
+    {
+      title: (<>{t("slide3Title")} <span className="text-brand">{t("slide3Highlight")}</span></>),
+      body: t("slide3Body"),
+      art: "insights" as const,
+    },
+  ];
+
   const [current, setCurrent] = React.useState(0);
   const touchStartX = React.useRef(0);
   const isLast = current === SLIDES.length - 1;
@@ -218,7 +210,7 @@ export function OnboardingCarousel() {
           onClick={finish}
           className="text-[13px] text-fg-2 hover:text-fg-0 cursor-pointer px-1 py-2"
         >
-          Skip
+          {tCommon("skip")}
         </button>
       </div>
 
@@ -261,11 +253,11 @@ export function OnboardingCarousel() {
             onClick={() => setCurrent(current - 1)}
             className="w-[88px] flex-shrink-0"
           >
-            Back
+            {tCommon("back")}
           </Button>
         )}
         <Button onClick={next} className="flex-1">
-          {isLast ? "Get started" : "Next"}
+          {isLast ? tAuth("getStarted") : tCommon("next")}
         </Button>
       </div>
     </div>
