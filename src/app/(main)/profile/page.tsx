@@ -26,6 +26,7 @@ import {
   Sun,
   Wallet,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import * as React from "react";
 
@@ -42,6 +43,7 @@ function getCurrencySymbol(code: string): string {
 }
 
 export default function ProfilePage() {
+  const t = useTranslations("profile");
   const signOutMutation = useSignOutMutation();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
@@ -108,7 +110,7 @@ export default function ProfilePage() {
       {/* Profile header */}
       <div className="flex items-center justify-between px-5 pt-4 pb-2">
         <div className="text-[17px] font-semibold tracking-[-0.005em]">
-          Profile
+          {t("title")}
         </div>
         {/* <button className="w-9 h-9 rounded-full bg-bg-1 border border-line flex items-center justify-center text-fg-1 cursor-pointer hover:bg-bg-2 transition-colors">
           <Edit size={16} strokeWidth={1.75} />
@@ -143,34 +145,34 @@ export default function ProfilePage() {
       <div className="border-line bg-bg-1 mx-4 grid grid-cols-3 overflow-hidden rounded-md border">
         <div className="border-line border-r p-3.5">
           <div className="text-fg-2 text-[10px] tracking-[0.06em] uppercase">
-            Tracked
+            {t("tracked")}
           </div>
           <div className="mt-1 font-mono text-[18px] font-medium tracking-[-0.01em] tabular-nums">
             {txCount.toLocaleString()}
           </div>
           <div className="text-fg-2 mt-0.5 font-mono text-[11px]">
-            transactions
+            {t("transactions")}
           </div>
         </div>
         <div className="border-line border-r p-3.5">
           <div className="text-fg-2 text-[10px] tracking-[0.06em] uppercase">
-            Saved
+            {t("saved")}
           </div>
           <div className={`mt-1 font-mono text-[18px] font-medium tracking-[-0.01em] tabular-nums ${savingsPercent !== null && savingsPercent >= 0 ? "text-pos" : "text-neg"}`}>
             {savingsPercent !== null ? `${savingsPercent >= 0 ? "+" : ""}${savingsPercent}%` : "\u2014"}
           </div>
           <div className="text-fg-2 mt-0.5 font-mono text-[11px]">
-            {lastYearSummary ? "vs last yr" : "savings rate"}
+            {lastYearSummary ? t("vsLastYear") : t("savingsRate")}
           </div>
         </div>
         <div className="p-3.5">
           <div className="text-fg-2 text-[10px] tracking-[0.06em] uppercase">
-            Streak
+            {t("streak")}
           </div>
           <div className="mt-1 font-mono text-[18px] font-medium tracking-[-0.01em] tabular-nums">
             {streak}
           </div>
-          <div className="text-fg-2 mt-0.5 font-mono text-[11px]">days</div>
+          <div className="text-fg-2 mt-0.5 font-mono text-[11px]">{t("days")}</div>
         </div>
       </div>
 
@@ -181,8 +183,8 @@ export default function ProfilePage() {
           <SettingsRow
             icon={<Crown size={16} strokeWidth={1.75} />}
             iconClassName="bg-brand-soft text-brand border-transparent"
-            label="FinTrack Pro"
-            description="Unlock Bulk Import, AI Chatbots, and more"
+            label={t("fintrackPro")}
+            description={t("proDescription")}
           />
           {/* <SettingsRow
             icon={<User size={16} strokeWidth={1.75} />}
@@ -191,13 +193,13 @@ export default function ProfilePage() {
           /> */}
           <SettingsRow
             icon={<Globe size={16} strokeWidth={1.75} />}
-            label="Currency"
+            label={t("currency")}
             value={`${currencyCode} · ${currencySymbol}`}
             onClick={() => setCurrencyOpen(true)}
           />
           <SettingsRow
             icon={<Languages size={16} strokeWidth={1.75} />}
-            label="Language"
+            label={t("language")}
             value={profile?.language === "id" ? "Bahasa Indonesia" : "English"}
             onClick={() => handleLanguageChange(profile?.language === "id" ? "en" : "id")}
           />
@@ -212,25 +214,25 @@ export default function ProfilePage() {
         <AccountsSection />
 
         {/* Preferences */}
-        <SettingsGroup label="Preferences">
+        <SettingsGroup label={t("preferences")}>
           <SettingsRow
             icon={<Sun size={16} strokeWidth={1.75} />}
-            label="Appearance"
+            label={t("appearance")}
             trailing={
               mounted ? <ThemeToggle theme={theme} setTheme={setTheme} /> : null
             }
           />
           <SettingsRow
             icon={<Bell size={16} strokeWidth={1.75} />}
-            label="Notifications"
-            description="Daily summary at 8 PM"
+            label={t("notifications")}
+            description={t("notificationsDescription")}
             onClick={() => setNotifs(!notifs)}
             trailing={<Toggle checked={notifs} onCheckedChange={setNotifs} />}
           />
           <SettingsRow
             icon={<Wallet size={16} strokeWidth={1.75} />}
-            label="Budget alerts"
-            description="Quiet ping at 85% of limit"
+            label={t("budgetAlerts")}
+            description={t("budgetAlertsDescription")}
             onClick={() => setBudgetAlerts(!budgetAlerts)}
             trailing={
               <Toggle
@@ -270,19 +272,19 @@ export default function ProfilePage() {
         </SettingsGroup> */}
 
         {/* Support */}
-        <SettingsGroup label="Support">
+        <SettingsGroup label={t("support")}>
           <SettingsRow
             icon={<HelpCircle size={16} strokeWidth={1.75} />}
-            label="Help center"
+            label={t("helpCenter")}
           />
           <SettingsRow
             icon={<Star size={16} strokeWidth={1.75} />}
-            label="Rate FinTrack"
+            label={t("rateFintrack")}
           />
           <SettingsRow
             icon={<LogOut size={16} strokeWidth={1.75} />}
             iconClassName="bg-neg-soft text-neg border-transparent"
-            label={signOutMutation.isPending ? "Signing out..." : "Sign out"}
+            label={signOutMutation.isPending ? t("signingOut") : t("signOut")}
             danger
             onClick={handleSignOut}
             trailing={<span />}
