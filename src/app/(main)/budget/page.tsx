@@ -47,7 +47,6 @@ export default function BudgetPage() {
 }
 
 function BudgetPageContent() {
-  const t = useTranslations("budget");
   const tCommon = useTranslations("common");
   const searchParams = useSearchParams();
   const now = new Date();
