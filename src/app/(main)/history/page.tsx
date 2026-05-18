@@ -10,6 +10,7 @@ import {
   Tag,
   Trash2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { fmtIDRShort } from "@/lib/format";
 import { HistorySummary } from "@/components/history/history-summary";
 import { HistoryList } from "@/components/history/history-list";
@@ -41,6 +42,8 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 ];
 
 export default function HistoryPage() {
+  const t = useTranslations("history");
+  const tCommon = useTranslations("common");
   const openAddTx = useAddTransaction();
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [searchQ, setSearchQ] = React.useState("");
@@ -218,7 +221,7 @@ export default function HistoryPage() {
           <>
             <div className="flex-1">
               <div className="text-[17px] font-semibold text-fg-0">
-                Transactions
+                {t("title")}
               </div>
               <div className="text-[11px] text-fg-2 font-mono mt-0.5">
                 {rangeLabel}
@@ -350,7 +353,7 @@ export default function HistoryPage() {
       {/* Loading */}
       {isLoading && (
         <div className="flex justify-center py-12 text-[13px] text-fg-2">
-          Loading...
+          {tCommon("loading")}
         </div>
       )}
 
@@ -388,7 +391,7 @@ export default function HistoryPage() {
             className="flex-1 h-11 rounded-sm bg-neg text-white text-[13px] font-medium flex items-center justify-center gap-2 cursor-pointer hover:brightness-105 transition-all"
           >
             <Trash2 size={14} strokeWidth={1.75} />
-            Delete ({selected.size})
+            {tCommon("delete")} ({selected.size})
           </button>
         </div>
       )}
