@@ -60,6 +60,7 @@ export const authService = {
     display_name: string;
     phone: string;
     currency_preference: string;
+    language: string;
   }) => {
     const { data: userResponse, error: userError } =
       await supabase.auth.getUser();
@@ -74,6 +75,7 @@ export const authService = {
         display_name: profileData.display_name,
         phone: profileData.phone,
         currency_preference: profileData.currency_preference,
+        language: profileData.language,
       },
     ]);
 
