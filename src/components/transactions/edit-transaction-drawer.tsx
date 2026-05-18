@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { format, isSameDay, isToday, isYesterday, subDays } from "date-fns";
+import { useTranslations } from "next-intl";
 import {
   ArrowUpRight,
   ArrowDownLeft,
@@ -61,14 +62,16 @@ function DatePickerView({
   onSelect: (date: Date) => void;
   onBack: () => void;
 }) {
+  const tCommon = useTranslations("common");
+  const tTx = useTranslations("transaction");
   const today = new Date();
   const yest = subDays(today, 1);
   const twoDays = subDays(today, 2);
 
   const presets = [
-    { id: "today", label: "Today", date: today },
-    { id: "yest", label: "Yesterday", date: yest },
-    { id: "2d", label: "2 days ago", date: twoDays },
+    { id: "today", label: tCommon("today"), date: today },
+    { id: "yest", label: tCommon("yesterday"), date: yest },
+    { id: "2d", label: tTx("twoDaysAgo"), date: twoDays },
   ];
 
   return (
@@ -83,7 +86,7 @@ function DatePickerView({
           <ChevronLeft size={14} strokeWidth={1.75} />
         </Button>
         <h3 className="text-[17px] font-semibold tracking-[-0.005em]">
-          Select date
+          {tTx("selectDate")}
         </h3>
         <div className="w-8" />
       </div>

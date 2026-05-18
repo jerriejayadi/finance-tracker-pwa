@@ -139,7 +139,12 @@
     "date": "Date",
     "notes": "Notes",
     "account": "Account",
-    "recurring": "Recurring"
+    "recurring": "Recurring",
+    "selectDate": "Select date",
+    "twoDaysAgo": "2 days ago",
+    "selectAccount": "Select account",
+    "searchAccounts": "Search accounts",
+    "confirm": "Confirm"
   },
   "language": {
     "en": "English",

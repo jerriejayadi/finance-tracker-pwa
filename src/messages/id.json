@@ -139,7 +139,12 @@
     "date": "Tanggal",
     "notes": "Catatan",
     "account": "Akun",
-    "recurring": "Berulang"
+    "recurring": "Berulang",
+    "selectDate": "Pilih tanggal",
+    "twoDaysAgo": "2 hari yang lalu",
+    "selectAccount": "Pilih akun",
+    "searchAccounts": "Cari akun",
+    "confirm": "Konfirmasi"
   },
   "language": {
     "en": "English",
