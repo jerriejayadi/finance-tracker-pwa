@@ -17,28 +17,29 @@ import { Avatar } from "@/components/ui/avatar";
 import { AddTransactionDrawer } from "@/components/transactions/add-transaction-drawer";
 import { Toaster } from "@/components/ui/sonner";
 import { useGetProfile } from "@/services/profile/profile.hooks";
+import { useTranslations } from "next-intl";
 
 type TxType = "expense" | "income" | "transfer";
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
 
 const AddTxContext = React.createContext<(type?: TxType) => void>(() => {});
 export const useAddTransaction = () => React.useContext(AddTxContext);
 
 const TAB_LEFT = [
-  { id: "/", icon: Home, label: "Home" },
-  { id: "/history", icon: Receipt, label: "History" },
+  { id: "/", icon: Home },
+  { id: "/history", icon: Receipt },
 ] as const;
 
 const TAB_RIGHT = [
-  { id: "/budget", icon: Wallet, label: "Budget" },
-  { id: "/profile", icon: User, label: "You" },
+  { id: "/budget", icon: Wallet },
+  { id: "/profile", icon: User },
 ] as const;
+
+const navKeys: Record<string, "home" | "history" | "budget" | "you"> = {
+  "/": "home",
+  "/history": "history",
+  "/budget": "budget",
+  "/profile": "you",
+};
 
 export default function DashboardLayout({
   children,
@@ -49,6 +50,8 @@ export default function DashboardLayout({
   const [addTxOpen, setAddTxOpen] = React.useState(false);
   const [addTxType, setAddTxType] = React.useState<TxType>("expense");
   const { data: profile } = useGetProfile();
+  const tNav = useTranslations("nav");
+  const tGreeting = useTranslations("greeting");
 
   const openAddTx = React.useCallback((type: TxType = "expense") => {
     setAddTxType(type);
@@ -65,13 +68,16 @@ export default function DashboardLayout({
         .toUpperCase()
     : "";
 
+  const hour = new Date().getHours();
+  const greetingKey = hour < 12 ? "morning" : hour < 17 ? "afternoon" : ("evening" as const);
+
   return (
     <AddTxContext.Provider value={openAddTx}>
     <div className="flex flex-col min-h-dvh bg-bg-0 w-full mx-auto relative overflow-x-hidden">
       {/* App header */}
       <header className="flex items-center justify-between px-5 pt-3 pb-2">
         <div>
-          <div className="text-[12px] text-fg-2">{getGreeting()}</div>
+          <div className="text-[12px] text-fg-2">{tGreeting(greetingKey)}</div>
           <div className="text-[17px] font-semibold text-fg-0 mt-0.5">
             {firstName}
           </div>
@@ -106,7 +112,7 @@ export default function DashboardLayout({
               }`}
             >
               <Icon size={20} strokeWidth={1.75} />
-              <span>{item.label}</span>
+              <span>{tNav(navKeys[item.id])}</span>
               <span
                 className={`w-1 h-1 rounded-full bg-brand -mt-0.5 ${
                   isActive ? "opacity-100" : "opacity-0"
@@ -138,7 +144,7 @@ export default function DashboardLayout({
               }`}
             >
               <Icon size={20} strokeWidth={1.75} />
-              <span>{item.label}</span>
+              <span>{tNav(navKeys[item.id])}</span>
               <span
                 className={`w-1 h-1 rounded-full bg-brand -mt-0.5 ${
                   isActive ? "opacity-100" : "opacity-0"
