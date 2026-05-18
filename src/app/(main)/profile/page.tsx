@@ -7,7 +7,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { SettingsGroup, SettingsRow } from "@/components/ui/settings-group";
 import { Toggle } from "@/components/ui/toggle";
 import { useSignOutMutation } from "@/services/auth/auth.hooks";
-import { useGetProfile } from "@/services/profile/profile.hooks";
+import { useGetProfile, useUpdateProfile } from "@/services/profile/profile.hooks";
 import {
   useGetTransactionCount,
   useGetTransactionStreak,
@@ -19,6 +19,7 @@ import {
   Edit,
   Globe,
   HelpCircle,
+  Languages,
   LogOut,
   Moon,
   Star,
@@ -72,6 +73,17 @@ export default function ProfilePage() {
   React.useEffect(() => {
     setMounted(true);
   }, []);
+
+  const updateProfile = useUpdateProfile();
+
+  const handleLanguageChange = (newLang: string) => {
+    document.cookie = `NEXT_LOCALE=${newLang};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
+    updateProfile.mutate({ language: newLang }, {
+      onSuccess: () => {
+        window.location.reload();
+      },
+    });
+  };
 
   const handleSignOut = () => {
     signOutMutation.mutate(undefined);
@@ -182,6 +194,12 @@ export default function ProfilePage() {
             label="Currency"
             value={`${currencyCode} · ${currencySymbol}`}
             onClick={() => setCurrencyOpen(true)}
+          />
+          <SettingsRow
+            icon={<Languages size={16} strokeWidth={1.75} />}
+            label="Language"
+            value={profile?.language === "id" ? "Bahasa Indonesia" : "English"}
+            onClick={() => handleLanguageChange(profile?.language === "id" ? "en" : "id")}
           />
           {/* <SettingsRow
             icon={<Calendar size={16} strokeWidth={1.75} />}
