@@ -50,6 +50,7 @@ const ProfileSchema = v.object({
     v.string(),
     v.length(3, "Currency code must be 3 characters.")
   ),
+  language: v.pipe(v.string(), v.nonEmpty("Please select a language.")),
 });
 
 type CredentialsFormValues = v.InferOutput<typeof CredentialsSchema>;
@@ -134,10 +135,14 @@ export function RegisterForm() {
         "User";
     }
 
+    // Set locale cookie before redirect
+    document.cookie = `NEXT_LOCALE=${data.language};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
+
     setupProfileMutation.mutate({
       display_name: displayName,
       phone: data.phone,
       currency_preference: data.currency,
+      language: data.language,
     });
   };
 
@@ -396,7 +401,7 @@ function ProfileStep({ onSubmit, isPending, apiError }: ProfileStepProps) {
     formState: { errors },
   } = useForm<ProfileFormValues>({
     resolver: valibotResolver(ProfileSchema),
-    defaultValues: { phone: "", currency: "IDR" },
+    defaultValues: { phone: "", currency: "IDR", language: "en" },
   });
 
   return (
@@ -426,6 +431,22 @@ function ProfileStep({ onSubmit, isPending, apiError }: ProfileStepProps) {
         {errors.currency && (
           <p className="text-[13px] text-neg px-1">
             {errors.currency.message}
+          </p>
+        )}
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="language">Preferred language</Label>
+        <select
+          id="language"
+          {...register("language")}
+          className="h-12 rounded-sm bg-bg-1 border border-line text-fg-0 px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/40"
+        >
+          <option value="en">English</option>
+          <option value="id">Bahasa Indonesia</option>
+        </select>
+        {errors.language && (
+          <p className="text-[13px] text-neg px-1">
+            {errors.language.message}
           </p>
         )}
       </div>
