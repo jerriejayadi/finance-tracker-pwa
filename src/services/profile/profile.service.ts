@@ -7,6 +7,7 @@ export type Profile = {
   phone: string | null;
   avatar_url: string | null;
   first_day_of_week: number;
+  language: string;
   created_at: string;
   updated_at: string;
   email: string | null;
@@ -18,6 +19,7 @@ export type UpdateProfilePayload = {
   phone?: string;
   avatar_url?: string;
   first_day_of_week?: number;
+  language?: string;
 };
 
 export const profileService = {

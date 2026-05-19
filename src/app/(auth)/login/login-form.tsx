@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useLoginMutation, useGoogleSignInMutation } from "@/services/auth/auth.hooks";
@@ -25,6 +26,7 @@ const LoginSchema = v.object({
 type LoginFormValues = v.InferOutput<typeof LoginSchema>;
 
 export function LoginForm() {
+  const t = useTranslations("auth");
   const [showPwd, setShowPwd] = React.useState(false);
   const [remember, setRemember] = React.useState(true);
 
@@ -52,7 +54,7 @@ export function LoginForm() {
       <div className="flex flex-col gap-1">
         <Input
           type="email"
-          placeholder="Email address"
+          placeholder={t("emailAddress")}
           icon={<Mail size={18} />}
           {...register("email")}
         />
@@ -63,7 +65,7 @@ export function LoginForm() {
       <div className="flex flex-col gap-1">
         <Input
           type={showPwd ? "text" : "password"}
-          placeholder="Password"
+          placeholder={t("password")}
           icon={<Lock size={18} />}
           {...register("password")}
           suffix={
@@ -72,7 +74,7 @@ export function LoginForm() {
               onClick={() => setShowPwd(!showPwd)}
               className="text-[11px] text-fg-2 hover:text-fg-0 uppercase tracking-[0.04em] font-medium cursor-pointer"
             >
-              {showPwd ? "Hide" : "Show"}
+              {showPwd ? t("hide") : t("show")}
             </button>
           }
         />
@@ -97,10 +99,10 @@ export function LoginForm() {
           >
             {remember && <Check size={11} />}
           </div>
-          Remember me
+          {t("rememberMe")}
         </button>
         <a className="text-[13px] text-brand hover:text-brand-hi cursor-pointer">
-          Forgot password?
+          {t("forgotPassword")}
         </a>
       </div>
 
@@ -109,7 +111,7 @@ export function LoginForm() {
       )}
 
       <Button className="w-full mt-4" type="submit" disabled={loginMutation.isPending}>
-        {loginMutation.isPending ? "Signing in..." : "Sign in"}
+        {loginMutation.isPending ? t("signingIn") : t("signIn")}
       </Button>
     </form>
 
@@ -117,7 +119,7 @@ export function LoginForm() {
     <div className="flex items-center gap-3 my-5">
       <div className="flex-1 h-px bg-line" />
       <span className="text-[11px] text-fg-2 uppercase tracking-[0.06em]">
-        or continue with
+        {t("orContinueWith")}
       </span>
       <div className="flex-1 h-px bg-line" />
     </div>
@@ -143,7 +145,7 @@ export function LoginForm() {
           <path fill="#FBBC05" d="M5.84 14.09a6.6 6.6 0 0 1 0-4.18V7.07H2.18a11 11 0 0 0 0 9.86l3.66-2.84z" />
           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
         </svg>
-        {googleSignIn.isPending ? "Connecting..." : "Google"}
+        {googleSignIn.isPending ? t("connecting") : "Google"}
       </button>
     </div>
     </>

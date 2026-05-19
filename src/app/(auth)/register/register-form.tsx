@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ const ProfileSchema = v.object({
     v.string(),
     v.length(3, "Currency code must be 3 characters.")
   ),
+  language: v.pipe(v.string(), v.nonEmpty("Please select a language.")),
 });
 
 type CredentialsFormValues = v.InferOutput<typeof CredentialsSchema>;
@@ -134,10 +136,14 @@ export function RegisterForm() {
         "User";
     }
 
+    // Set locale cookie before redirect
+    document.cookie = `NEXT_LOCALE=${data.language};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
+
     setupProfileMutation.mutate({
       display_name: displayName,
       phone: data.phone,
       currency_preference: data.currency,
+      language: data.language,
     });
   };
 
@@ -203,6 +209,7 @@ function CredentialsStep({
   isPending,
   apiError,
 }: CredentialsStepProps) {
+  const t = useTranslations("auth");
   const {
     register,
     handleSubmit,
@@ -220,7 +227,7 @@ function CredentialsStep({
       <div className="flex flex-col gap-1">
         <Input
           type="text"
-          placeholder="Full name"
+          placeholder={t("fullName")}
           icon={<User size={18} />}
           {...register("fullName")}
         />
@@ -233,7 +240,7 @@ function CredentialsStep({
       <div className="flex flex-col gap-1">
         <Input
           type="email"
-          placeholder="Email address"
+          placeholder={t("emailAddress")}
           icon={<Mail size={18} />}
           {...register("email")}
         />
@@ -244,7 +251,7 @@ function CredentialsStep({
       <div className="flex flex-col gap-1">
         <Input
           type={showPwd ? "text" : "password"}
-          placeholder="Create a password"
+          placeholder={t("createPassword")}
           icon={<Lock size={18} />}
           {...register("password")}
           suffix={
@@ -253,7 +260,7 @@ function CredentialsStep({
               onClick={() => setShowPwd(!showPwd)}
               className="text-[11px] text-fg-2 hover:text-fg-0 uppercase tracking-[0.04em] font-medium cursor-pointer"
             >
-              {showPwd ? "Hide" : "Show"}
+              {showPwd ? t("hide") : t("show")}
             </button>
           }
         />
@@ -282,7 +289,7 @@ function CredentialsStep({
           >
             {agree && <Check size={11} />}
           </div>
-          I agree to the <span className="text-brand ml-[-2px]">Terms</span>
+          {t("agreeToTerms")} <span className="text-brand ml-[-2px]">{t("terms")}</span>
         </button>
       </div>
 
@@ -291,7 +298,7 @@ function CredentialsStep({
       )}
 
       <Button className="w-full mt-4" type="submit" disabled={isPending}>
-        {isPending ? "Creating account..." : "Create account"}
+        {isPending ? t("creatingAccount") : t("createAccount")}
       </Button>
     </form>
   );
@@ -316,6 +323,7 @@ function VerifyOtpStep({
   apiError,
   isResendSuccess,
 }: VerifyOtpStepProps) {
+  const t = useTranslations("auth");
   const {
     register,
     handleSubmit,
@@ -329,11 +337,11 @@ function VerifyOtpStep({
     <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
       <div className="flex flex-col items-center justify-center p-4 text-center">
         <p className="text-[13px] text-fg-1 mb-4">
-          We&apos;ve sent a verification code to{" "}
+          {t("otpSentTo")}{" "}
           <span className="text-fg-0 font-medium">{email}</span>.
         </p>
         <div className="flex flex-col gap-1.5 w-full text-left">
-          <Label htmlFor="otp">Enter 6-digit code</Label>
+          <Label htmlFor="otp">{t("enterOtpCode")}</Label>
           <Input
             id="otp"
             type="text"
@@ -352,7 +360,7 @@ function VerifyOtpStep({
       )}
       {isResendSuccess && (
         <p className="text-[13px] text-pos text-center">
-          A new code has been sent.
+          {t("newCodeSent")}
         </p>
       )}
       <div className="flex justify-center -mt-2">
@@ -362,7 +370,7 @@ function VerifyOtpStep({
           onClick={onResend}
           disabled={isPending}
         >
-          Resend code
+          {t("resendCode")}
         </button>
       </div>
       <div className="flex gap-2 mt-2">
@@ -376,7 +384,7 @@ function VerifyOtpStep({
           <ArrowLeft size={18} />
         </Button>
         <Button className="flex-1" type="submit" disabled={isPending}>
-          {isPending ? "Verifying..." : "Verify email"}
+          {isPending ? t("verifying") : t("verifyEmail")}
         </Button>
       </div>
     </form>
@@ -390,19 +398,20 @@ interface ProfileStepProps {
 }
 
 function ProfileStep({ onSubmit, isPending, apiError }: ProfileStepProps) {
+  const t = useTranslations("auth");
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<ProfileFormValues>({
     resolver: valibotResolver(ProfileSchema),
-    defaultValues: { phone: "", currency: "IDR" },
+    defaultValues: { phone: "", currency: "IDR", language: "en" },
   });
 
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="phone">Phone number</Label>
+        <Label htmlFor="phone">{t("phoneNumber")}</Label>
         <Input
           id="phone"
           type="tel"
@@ -414,7 +423,7 @@ function ProfileStep({ onSubmit, isPending, apiError }: ProfileStepProps) {
         )}
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="currency">Preferred currency</Label>
+        <Label htmlFor="currency">{t("preferredCurrency")}</Label>
         <Input
           id="currency"
           type="text"
@@ -429,11 +438,27 @@ function ProfileStep({ onSubmit, isPending, apiError }: ProfileStepProps) {
           </p>
         )}
       </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="language">{t("preferredLanguage")}</Label>
+        <select
+          id="language"
+          {...register("language")}
+          className="h-12 rounded-sm bg-bg-1 border border-line text-fg-0 px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/40"
+        >
+          <option value="en">English</option>
+          <option value="id">Bahasa Indonesia</option>
+        </select>
+        {errors.language && (
+          <p className="text-[13px] text-neg px-1">
+            {errors.language.message}
+          </p>
+        )}
+      </div>
       {apiError && (
         <p className="text-[13px] text-neg text-center">{apiError}</p>
       )}
       <Button className="w-full mt-2" type="submit" disabled={isPending}>
-        {isPending ? "Saving..." : "Complete setup"}
+        {isPending ? t("saving") : t("completeSetup")}
       </Button>
     </form>
   );

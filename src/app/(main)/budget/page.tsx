@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useGetBudgets, useCreateBudgets, useUpdateBudget, useDeleteBudget, useGetBudgetMonths } from "@/services/budgets/budgets.hooks";
 import { useGetCategories } from "@/services/categories/categories.hooks";
 import { useGetProfile } from "@/services/profile/profile.hooks";
@@ -46,6 +47,7 @@ export default function BudgetPage() {
 }
 
 function BudgetPageContent() {
+  const tCommon = useTranslations("common");
   const searchParams = useSearchParams();
   const now = new Date();
   const [year, setYear] = React.useState(now.getFullYear());
@@ -222,7 +224,7 @@ function BudgetPageContent() {
 
       {isLoading && (
         <div className="flex justify-center py-12 text-[13px] text-fg-2">
-          Loading...
+          {tCommon("loading")}
         </div>
       )}
 
@@ -252,7 +254,7 @@ function BudgetPageContent() {
                 onClick={() => setEditOpen(true)}
                 className="text-[12px] text-brand flex items-center gap-1 cursor-pointer hover:text-brand-hi"
               >
-                <Pencil size={12} strokeWidth={1.75} /> Edit
+                <Pencil size={12} strokeWidth={1.75} /> {tCommon("edit")}
               </button>
               <div className="bg-bg-1 border-line flex items-center gap-0.5 rounded-sm border p-[3px]">
                 <button className="bg-bg-3 text-fg-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-xs">
@@ -272,7 +274,7 @@ function BudgetPageContent() {
               count={cats.length}
               onClick={() => setFilter("all")}
             >
-              All
+              {tCommon("all")}
             </Chip>
             <Chip
               active={filter === "active"}

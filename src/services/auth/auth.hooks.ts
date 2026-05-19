@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { authService } from "./auth.service";
 import { MutationConfig } from "@/lib/query-client";
+import { supabase } from "@/lib/supabase/client";
 
 type UseLoginParams = {
   mutationConfig?: MutationConfig<typeof authService.login>;
@@ -13,8 +14,22 @@ export const useLoginMutation = ({ mutationConfig }: UseLoginParams = {}) => {
   return useMutation({
     mutationFn: authService.login,
     ...mutationConfig,
-    onSuccess: (data, ...args) => {
+    onSuccess: async (data, ...args) => {
       console.log("Login successful! User ID:", data.user?.id);
+
+      // Fetch user profile to get language preference and set cookie
+      if (data.user?.id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("language")
+          .eq("id", data.user.id)
+          .single();
+
+        if (profile?.language) {
+          document.cookie = `NEXT_LOCALE=${profile.language};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
+        }
+      }
+
       router.push("/");
       mutationConfig?.onSuccess?.(data, ...args);
     },

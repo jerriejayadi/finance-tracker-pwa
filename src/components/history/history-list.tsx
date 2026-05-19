@@ -3,14 +3,16 @@
 import * as React from "react";
 import { Repeat, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, isToday, isYesterday } from "date-fns";
+import { format, isToday, isYesterday, type Locale } from "date-fns";
+import { useTranslations, useLocale } from "next-intl";
+import { getDateLocale } from "@/lib/date-locale";
 import type { Transaction } from "./history-constants";
 
-function fmtDateRow(iso: string): string {
+function fmtDateRow(iso: string, locale: Locale, tCommon: (key: string) => string): string {
   const d = new Date(iso + "T00:00:00");
-  if (isToday(d)) return "Today";
-  if (isYesterday(d)) return "Yesterday";
-  return format(d, "d MMM");
+  if (isToday(d)) return tCommon("today");
+  if (isYesterday(d)) return tCommon("yesterday");
+  return format(d, "d MMM", { locale });
 }
 
 interface HistoryListProps {
@@ -30,6 +32,10 @@ export function HistoryList({
   onTapRow,
   rangeLabel,
 }: HistoryListProps) {
+  const tCommon = useTranslations("common");
+  const locale = useLocale();
+  const dateLocale = getDateLocale(locale);
+
   return (
     <div className="px-3 flex flex-col gap-px">
       {transactions.map((tx) => {
@@ -79,7 +85,7 @@ export function HistoryList({
                 )}
               </div>
               <div className="text-[11px] text-fg-2 font-mono mt-0.5 truncate flex items-center gap-1.5">
-                <span>{fmtDateRow(tx.date)}</span>
+                <span>{fmtDateRow(tx.date, dateLocale, tCommon)}</span>
                 <span className="opacity-50">&middot;</span>
                 <span>{tx.category_name || tx.category}</span>
                 <span className="opacity-50">&middot;</span>

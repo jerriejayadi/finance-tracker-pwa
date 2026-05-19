@@ -19,6 +19,7 @@ import {
   startOfMonth,
   startOfWeek,
 } from "date-fns";
+import type { Locale } from "date-fns";
 import {
   ArrowDownLeft,
   ArrowLeftRight,
@@ -40,15 +41,14 @@ import { useGetBudgets } from "@/services/budgets/budgets.hooks";
 import { useGetProfile } from "@/services/profile/profile.hooks";
 import { useRouter } from "next/navigation";
 import { MonthPickerDrawer } from "@/components/budget/month-picker-drawer";
+import { useTranslations, useLocale } from "next-intl";
+import { getDateLocale } from "@/lib/date-locale";
 
-const PERIOD_OPTIONS = [
-  { value: "Day", label: "Day" },
-  { value: "Week", label: "Week" },
-  { value: "Month", label: "Month" },
-  { value: "Year", label: "Year" },
-];
-
-function formatDayLabel(dateStr: string): string {
+function formatDayLabel(
+  dateStr: string,
+  tCommon: ReturnType<typeof useTranslations>,
+  dateLocale: Locale
+): string {
   const date = new Date(dateStr + "T00:00:00");
   const today = new Date();
   const yesterday = new Date(today);
@@ -57,10 +57,10 @@ function formatDayLabel(dateStr: string): string {
   const todayStr = format(today, "yyyy-MM-dd");
   const yesterdayStr = format(yesterday, "yyyy-MM-dd");
 
-  if (dateStr === todayStr) return `Today \u00B7 ${format(date, "MMM d")}`;
+  if (dateStr === todayStr) return `${tCommon("today")} \u00B7 ${format(date, "MMM d", { locale: dateLocale })}`;
   if (dateStr === yesterdayStr)
-    return `Yesterday \u00B7 ${format(date, "MMM d")}`;
-  return format(date, "MMM d");
+    return `${tCommon("yesterday")} \u00B7 ${format(date, "MMM d", { locale: dateLocale })}`;
+  return format(date, "MMM d", { locale: dateLocale });
 }
 
 export default function DashboardPage() {
@@ -75,6 +75,18 @@ export default function DashboardPage() {
   const [selectedYear, setSelectedYear] = React.useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = React.useState(now.getMonth());
   const [monthPickerOpen, setMonthPickerOpen] = React.useState(false);
+
+  const tDash = useTranslations("dashboard");
+  const tCommon = useTranslations("common");
+  const locale = useLocale();
+  const dateLocale = getDateLocale(locale);
+
+  const PERIOD_OPTIONS = [
+    { value: "Day", label: tDash("day") },
+    { value: "Week", label: tDash("week") },
+    { value: "Month", label: tDash("month") },
+    { value: "Year", label: tDash("year") },
+  ];
 
   // Budget & profile data for onboarding
   const { data: profile } = useGetProfile();
@@ -143,7 +155,7 @@ export default function DashboardPage() {
     }
     return Array.from(map.entries()).map(([date, items]) => ({
       day: date,
-      dayLabel: formatDayLabel(date),
+      dayLabel: formatDayLabel(date, tCommon, dateLocale),
       total: items.reduce(
         (s, t) =>
           s + (t.type === "Income" ? Number(t.amount) : -Number(t.amount)),
@@ -151,7 +163,7 @@ export default function DashboardPage() {
       ),
       items,
     }));
-  }, [recentTx]);
+  }, [recentTx, tCommon, dateLocale]);
 
   // Category chips with counts
   const chips = React.useMemo(() => {
@@ -168,7 +180,7 @@ export default function DashboardPage() {
   }, [recentTx]);
 
   // Month label
-  const monthLabel = format(new Date(selectedYear, selectedMonth), "MMMM \u00B7 yyyy");
+  const monthLabel = format(new Date(selectedYear, selectedMonth), "MMMM \u00B7 yyyy", { locale: dateLocale });
 
   const { data: totalTxCount = 0 } = useGetTransactionCount();
 
@@ -208,7 +220,7 @@ export default function DashboardPage() {
 
         <div className="relative z-[1] flex items-center justify-between">
           <div className="text-fg-2 text-[11px] font-medium tracking-[0.06em] uppercase">
-            Total balance
+            {tDash("totalBalance")}
           </div>
           <button onClick={() => setMonthPickerOpen(true)} className="bg-bg-2 border-line text-fg-1 inline-flex h-6 cursor-pointer items-center gap-1 rounded-full border px-2.5 font-mono text-[11px]">
             {monthLabel} <ChevronDown size={12} strokeWidth={1.75} />
@@ -225,19 +237,19 @@ export default function DashboardPage() {
             onClick={() => openAddTx("expense")}
             className="bg-brand text-brand-ink hover:bg-brand-hi flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-sm border border-transparent text-[13px] font-medium transition-colors"
           >
-            <Plus size={16} strokeWidth={1.75} /> Expense
+            <Plus size={16} strokeWidth={1.75} /> {tCommon("expense")}
           </button>
           <button
             onClick={() => openAddTx("income")}
             className="bg-bg-2 text-fg-0 border-line hover:bg-bg-3 flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-sm border text-[13px] font-medium transition-colors"
           >
-            <ArrowDownLeft size={16} strokeWidth={1.75} /> Income
+            <ArrowDownLeft size={16} strokeWidth={1.75} /> {tCommon("income")}
           </button>
           <button
             onClick={() => openAddTx("transfer")}
             className="bg-bg-2 text-fg-0 border-line hover:bg-bg-3 flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-sm border text-[13px] font-medium transition-colors"
           >
-            <ArrowLeftRight size={16} strokeWidth={1.75} /> Transfer
+            <ArrowLeftRight size={16} strokeWidth={1.75} /> {tCommon("transfer")}
           </button>
         </div>
       </section>
@@ -250,7 +262,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <div className="text-fg-2 text-[11px] tracking-[0.04em] uppercase">
-              Income
+              {tCommon("income")}
             </div>
             <div className="mt-0.5 font-mono text-[15px] font-medium tabular-nums">
               {fmtIDRShort(summary?.totalIncome ?? 0)}
@@ -264,7 +276,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <div className="text-fg-2 text-[11px] tracking-[0.04em] uppercase">
-              Expenses
+              {tCommon("expenses")}
             </div>
             <div className="mt-0.5 font-mono text-[15px] font-medium tabular-nums">
               {fmtIDRShort(summary?.totalExpense ?? 0)}
@@ -276,13 +288,13 @@ export default function DashboardPage() {
       {/* Section title */}
       <div className="mt-[18px] flex items-center justify-between px-5">
         <h2 className="text-fg-2 text-[11px] font-semibold tracking-[0.06em] uppercase">
-          Recent activity
+          {tDash("recentActivity")}
         </h2>
         <Link
           href="/history"
           className="text-fg-1 hover:text-fg-0 flex cursor-pointer items-center gap-0.5 text-[12px]"
         >
-          See all <ChevronRight size={12} strokeWidth={1.75} />
+          {tCommon("seeAll")} <ChevronRight size={12} strokeWidth={1.75} />
         </Link>
       </div>
 
@@ -338,7 +350,7 @@ export default function DashboardPage() {
       </div>
       {groups.length === 0 && (
         <div className="text-fg-2 flex justify-center py-8 text-[13px]">
-          No transactions this period
+          {tDash("noTransactions")}
         </div>
       )}
         {/* <Input type="text" className="sticky bottom-20" /> */}

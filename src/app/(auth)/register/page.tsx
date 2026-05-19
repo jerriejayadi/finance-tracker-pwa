@@ -3,13 +3,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
 import { Suspense } from "react";
+import { getTranslations } from "next-intl/server";
 
 export const metadata: Metadata = {
   title: "Sign up — FinTrack",
   description: "Create your FinTrack account to start tracking your finances.",
 };
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
+  const t = await getTranslations("auth");
+
   return (
     <div className="flex flex-col min-h-dvh bg-bg-0 px-6 pb-8 pt-6">
       {/* Top bar */}
@@ -19,17 +22,17 @@ export default function RegisterPage() {
           href="/login"
           className="text-[13px] text-fg-1 hover:bg-bg-1 px-2 py-1.5 rounded-md cursor-pointer"
         >
-          Sign in
+          {t("signIn")}
         </Link>
       </div>
 
       {/* Hero */}
       <div className="mt-14">
         <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-0.025em] text-balance">
-          Start tracking <span className="text-brand">today.</span>
+          {t("startTracking")} <span className="text-brand">{t("startTrackingHighlight")}</span>
         </h1>
         <p className="text-[15px] text-fg-1 leading-[1.5] mt-3 max-w-[30ch]">
-          Create a free account. No card needed.
+          {t("createFreeAccount")}
         </p>
       </div>
 
@@ -42,7 +45,7 @@ export default function RegisterPage() {
       <div className="flex items-center gap-3 my-5">
         <div className="flex-1 h-px bg-line" />
         <span className="text-[11px] text-fg-2 uppercase tracking-[0.06em]">
-          or continue with
+          {t("orContinueWith")}
         </span>
         <div className="flex-1 h-px bg-line" />
       </div>
@@ -87,15 +90,15 @@ export default function RegisterPage() {
       {/* Footer */}
       <div className="mt-auto pt-6 text-center">
         <div className="text-[13px] text-fg-2">
-          Already have an account?{" "}
+          {t("alreadyHaveAccount")}{" "}
           <Link href="/login" className="text-brand hover:text-brand-hi">
-            Sign in
+            {t("signIn")}
           </Link>
         </div>
         <div className="text-[11px] text-fg-2 mt-4 leading-[1.5]">
-          By continuing you agree to our{" "}
-          <a className="text-fg-1 cursor-pointer">Terms</a> and{" "}
-          <a className="text-fg-1 cursor-pointer">Privacy Policy</a>.
+          {t("byContinuing")}{" "}
+          <a className="text-fg-1 cursor-pointer">{t("terms")}</a> {t("and")}{" "}
+          <a className="text-fg-1 cursor-pointer">{t("privacyPolicy")}</a>.
         </div>
       </div>
     </div>
