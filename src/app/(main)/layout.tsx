@@ -17,6 +17,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { AddTransactionDrawer } from "@/components/transactions/add-transaction-drawer";
 import { Toaster } from "@/components/ui/sonner";
 import { InstallApp } from "@/components/pwa/install-app";
+import { AuthGuard } from "@/components/auth/auth-guard";
 import { useGetProfile } from "@/services/profile/profile.hooks";
 import { useTranslations } from "next-intl";
 
@@ -74,6 +75,7 @@ export default function DashboardLayout({
 
   return (
     <AddTxContext.Provider value={openAddTx}>
+    <AuthGuard />
     <div className="flex flex-col min-h-dvh bg-bg-0 w-full mx-auto relative overflow-x-hidden">
       {/* App header */}
       <header className="flex items-center justify-between px-5 pt-3 pb-2">

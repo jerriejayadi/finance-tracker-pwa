@@ -3,6 +3,8 @@
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useSetLocale } from "@/i18n/locale-provider";
+import { locales, type Locale } from "@/i18n/config";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -62,6 +64,7 @@ type Step = "CREDENTIALS" | "VERIFY_OTP" | "PROFILE";
 
 export function RegisterForm() {
   const searchParams = useSearchParams();
+  const setLocale = useSetLocale();
   const initialStep = searchParams.get("step") === "profile" ? "PROFILE" : "CREDENTIALS";
   const [step, setStep] = React.useState<Step>(initialStep);
   const [showPwd, setShowPwd] = React.useState(false);
@@ -137,7 +140,7 @@ export function RegisterForm() {
     }
 
     // Set locale cookie before redirect
-    document.cookie = `NEXT_LOCALE=${data.language};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
+    if (locales.includes(data.language as Locale)) setLocale(data.language as Locale);
 
     setupProfileMutation.mutate({
       display_name: displayName,

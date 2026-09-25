@@ -3,6 +3,8 @@ import { useRouter } from "next/navigation";
 import { authService } from "./auth.service";
 import { MutationConfig } from "@/lib/query-client";
 import { supabase } from "@/lib/supabase/client";
+import { useSetLocale } from "@/i18n/locale-provider";
+import { locales, type Locale } from "@/i18n/config";
 
 type UseLoginParams = {
   mutationConfig?: MutationConfig<typeof authService.login>;
@@ -10,6 +12,7 @@ type UseLoginParams = {
 
 export const useLoginMutation = ({ mutationConfig }: UseLoginParams = {}) => {
   const router = useRouter();
+  const setLocale = useSetLocale();
 
   return useMutation({
     mutationFn: authService.login,
@@ -25,8 +28,8 @@ export const useLoginMutation = ({ mutationConfig }: UseLoginParams = {}) => {
           .eq("id", data.user.id)
           .single();
 
-        if (profile?.language) {
-          document.cookie = `NEXT_LOCALE=${profile.language};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
+        if (locales.includes(profile?.language as Locale)) {
+          setLocale(profile!.language as Locale);
         }
       }
 

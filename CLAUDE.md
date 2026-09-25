@@ -28,13 +28,17 @@ No test runner is configured.
 ### Data Layer
 
 - **Supabase** for auth and PostgreSQL database with RLS
-- **Three Supabase client variants** in `src/lib/supabase/`: `client.ts` (browser), `server.ts` (server components/actions), `proxy.ts` (session refresh used by `src/proxy.ts`)
+- **Supabase clients** in `src/lib/supabase/`: `client.ts` (browser — used for all data access), `server.ts` (server components/actions)
 - **Service pattern**: `src/services/{domain}/{domain}.service.ts` exports a class with static methods; `{domain}.hooks.ts` wraps those in TanStack Query hooks
 - **Query defaults**: 1min stale time, 10min GC, max 3 retries (fails immediately on 401)
 
 ### Auth Flow
 
-Proxy (`src/proxy.ts`, formerly middleware) checks session on every request — redirects unauthenticated to `/onboarding`, authenticated away from auth pages. Registration is multi-step: account creation → OTP verification → profile setup.
+Proxy (`src/proxy.ts`, formerly middleware) is an **optimistic gate with no network calls**: it only checks the Supabase session cookie exists — redirects unauthenticated to `/onboarding`, authenticated away from auth pages. `AuthGuard` (`src/components/auth/auth-guard.tsx`, mounted in `(main)/layout`) verifies the session with Supabase once per app load and redirects to `/login` (invalid session) or `/register?step=profile` (no profile row). Registration is multi-step: account creation → OTP verification → profile setup.
+
+### Static pages & i18n
+
+`(main)` pages are prerendered static so `<Link>` can fully prefetch them — **don't read `cookies()`/`headers()` in the root or `(main)` layouts**. Locale is resolved client-side by `LocaleProvider` (`src/i18n/locale-provider.tsx`) from the `NEXT_LOCALE` cookie; change it with `useSetLocale()`, never by writing the cookie directly. Auth pages still use server `getTranslations` (dynamic).
 
 ### UI System
 
@@ -45,7 +49,7 @@ Proxy (`src/proxy.ts`, formerly middleware) checks session on every request — 
 
 ### PWA
 
-Configured via `@ducanh2912/next-pwa` in `next.config.ts`. Service worker output to `public/sw.js`. Push notifications use VAPID keys (env vars `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`). PWA is disabled in dev mode.
+Uses `@serwist/turbopack` (works with Turbopack builds — no `--webpack` needed). Worker source is `src/app/sw.ts` (precaching + push handlers), served at `/serwist/sw.js` by `src/app/serwist/[path]/route.ts`, registered via `<SerwistProvider>` in the root layout. Push notifications use VAPID keys (env vars `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`). Disabled in dev unless `TEST_WITH_PWA=true`.
 
 ### Component Pattern
 

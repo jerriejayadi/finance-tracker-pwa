@@ -9,6 +9,8 @@ import { SettingsGroup, SettingsRow } from "@/components/ui/settings-group";
 import { Toggle } from "@/components/ui/toggle";
 import { useSignOutMutation } from "@/services/auth/auth.hooks";
 import { useGetProfile, useUpdateProfile } from "@/services/profile/profile.hooks";
+import { useSetLocale } from "@/i18n/locale-provider";
+import type { Locale } from "@/i18n/config";
 import {
   useGetTransactionCount,
   useGetTransactionStreak,
@@ -47,6 +49,7 @@ function getCurrencySymbol(code: string): string {
 
 export default function ProfilePage() {
   const t = useTranslations("profile");
+  const setLocale = useSetLocale();
   const signOutMutation = useSignOutMutation();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
@@ -90,13 +93,9 @@ export default function ProfilePage() {
     }
   };
 
-  const handleLanguageChange = (newLang: string) => {
-    document.cookie = `NEXT_LOCALE=${newLang};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
-    updateProfile.mutate({ language: newLang }, {
-      onSuccess: () => {
-        window.location.reload();
-      },
-    });
+  const handleLanguageChange = (newLang: Locale) => {
+    setLocale(newLang);
+    updateProfile.mutate({ language: newLang });
   };
 
   const handleSignOut = () => {
