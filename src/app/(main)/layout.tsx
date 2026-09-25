@@ -16,6 +16,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { AddTransactionDrawer } from "@/components/transactions/add-transaction-drawer";
 import { Toaster } from "@/components/ui/sonner";
+import { InstallApp } from "@/components/pwa/install-app";
 import { useGetProfile } from "@/services/profile/profile.hooks";
 import { useTranslations } from "next-intl";
 
@@ -157,6 +158,10 @@ export default function DashboardLayout({
 
       {/* Add Transaction Drawer */}
       <AddTransactionDrawer open={addTxOpen} onOpenChange={setAddTxOpen} defaultType={addTxType} />
+      <InstallApp>
+        <InstallApp.Trigger />
+        <InstallApp.Sheet />
+      </InstallApp>
       <Toaster />
     </div>
     </AddTxContext.Provider>

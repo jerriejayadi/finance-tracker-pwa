@@ -152,5 +152,19 @@
   "language": {
     "en": "English",
     "id": "Bahasa Indonesia"
+  },
+  "install": {
+    "trigger": "Install app",
+    "triggerDescription": "Add FinTrack to your home screen",
+    "title": "Install FinTrack",
+    "description": "Get the app experience, right from your home screen.",
+    "benefitHomeScreen": "Open straight from your home screen",
+    "benefitFullscreen": "Full-screen, no browser bars",
+    "benefitFast": "Launches faster",
+    "iosStepShare": "Tap the Share button in Safari",
+    "iosStepAdd": "Choose \"Add to Home Screen\"",
+    "install": "Install",
+    "gotIt": "Got it",
+    "notNow": "Not now"
   }
 }

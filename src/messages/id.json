@@ -152,5 +152,19 @@
   "language": {
     "en": "English",
     "id": "Bahasa Indonesia"
+  },
+  "install": {
+    "trigger": "Pasang aplikasi",
+    "triggerDescription": "Tambahkan FinTrack ke layar utama",
+    "title": "Pasang FinTrack",
+    "description": "Nikmati pengalaman aplikasi, langsung dari layar utama.",
+    "benefitHomeScreen": "Buka langsung dari layar utama",
+    "benefitFullscreen": "Layar penuh, tanpa bilah browser",
+    "benefitFast": "Terbuka lebih cepat",
+    "iosStepShare": "Ketuk tombol Bagikan di Safari",
+    "iosStepAdd": "Pilih \"Tambah ke Layar Utama\"",
+    "install": "Pasang",
+    "gotIt": "Mengerti",
+    "notNow": "Nanti saja"
   }
 }
