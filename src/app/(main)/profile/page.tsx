@@ -3,6 +3,7 @@
 import { AccountsSection } from "@/components/profile/accounts-section";
 import { CurrencyPickerDrawer } from "@/components/profile/currency-picker-drawer";
 import { EditProfileDrawer } from "@/components/profile/edit-profile-drawer";
+import { promptInstall, useInstallPrompt } from "@/components/pwa/install-prompt";
 import { Avatar } from "@/components/ui/avatar";
 import { SettingsGroup, SettingsRow } from "@/components/ui/settings-group";
 import { Toggle } from "@/components/ui/toggle";
@@ -22,6 +23,7 @@ import {
   Languages,
   LogOut,
   Moon,
+  Smartphone,
   Star,
   Sun,
   Wallet,
@@ -29,6 +31,7 @@ import {
 import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import * as React from "react";
+import { toast } from "sonner";
 
 function getCurrencySymbol(code: string): string {
   try {
@@ -77,6 +80,15 @@ export default function ProfilePage() {
   }, []);
 
   const updateProfile = useUpdateProfile();
+  const installState = useInstallPrompt();
+
+  const handleInstall = () => {
+    if (installState === "prompt") {
+      promptInstall();
+    } else if (installState === "ios") {
+      toast(t("installIosHint"));
+    }
+  };
 
   const handleLanguageChange = (newLang: string) => {
     document.cookie = `NEXT_LOCALE=${newLang};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
@@ -215,6 +227,15 @@ export default function ProfilePage() {
 
         {/* Preferences */}
         <SettingsGroup label={t("preferences")}>
+          {(installState === "prompt" || installState === "ios") && (
+            <SettingsRow
+              icon={<Smartphone size={16} strokeWidth={1.75} />}
+              iconClassName="bg-brand-soft text-brand border-transparent"
+              label={t("installApp")}
+              description={t("installAppDescription")}
+              onClick={handleInstall}
+            />
+          )}
           <SettingsRow
             icon={<Sun size={16} strokeWidth={1.75} />}
             label={t("appearance")}

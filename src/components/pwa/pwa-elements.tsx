@@ -2,16 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { subscribeUser, unsubscribeUser, sendNotification } from "@/app/actions";
-
-declare global {
-  interface BeforeInstallPromptEvent extends Event {
-    prompt: () => Promise<void>;
-    userChoice: Promise<{
-      outcome: "accepted" | "dismissed";
-      platform: string;
-    }>;
-  }
-}
+import { initInstallPrompt } from "./install-prompt";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -37,8 +28,9 @@ export function PwaElements() {
     null,
   );
 
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  useEffect(() => {
+    initInstallPrompt();
+  }, []);
 
   useEffect(() => {
     if (isSupported) {
@@ -47,20 +39,6 @@ export function PwaElements() {
         setSubscription(sub);
       });
     }
-
-    const handleBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault();
-      setDeferredPrompt(event as BeforeInstallPromptEvent);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener(
-        "beforeinstallprompt",
-        handleBeforeInstallPrompt,
-      );
-    };
   }, [isSupported]);
 
   // For now, this component is hidden and just manages state. 

@@ -28,13 +28,13 @@ No test runner is configured.
 ### Data Layer
 
 - **Supabase** for auth and PostgreSQL database with RLS
-- **Three Supabase client variants** in `src/lib/supabase/`: `client.ts` (browser), `server.ts` (server components/actions), `proxy.ts` (middleware session refresh)
+- **Three Supabase client variants** in `src/lib/supabase/`: `client.ts` (browser), `server.ts` (server components/actions), `proxy.ts` (session refresh used by `src/proxy.ts`)
 - **Service pattern**: `src/services/{domain}/{domain}.service.ts` exports a class with static methods; `{domain}.hooks.ts` wraps those in TanStack Query hooks
 - **Query defaults**: 1min stale time, 10min GC, max 3 retries (fails immediately on 401)
 
 ### Auth Flow
 
-Middleware (`src/middleware.ts`) checks session on every request — redirects unauthenticated to `/onboarding`, authenticated away from auth pages. Registration is multi-step: account creation → OTP verification → profile setup.
+Proxy (`src/proxy.ts`, formerly middleware) checks session on every request — redirects unauthenticated to `/onboarding`, authenticated away from auth pages. Registration is multi-step: account creation → OTP verification → profile setup.
 
 ### UI System
 

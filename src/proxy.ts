@@ -21,7 +21,7 @@ function resolveLocale(request: NextRequest): Locale {
   return defaultLocale;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { nextUrl } = request;
 
   // 1. Resolve locale and set cookie if missing
