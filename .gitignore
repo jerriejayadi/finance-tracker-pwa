@@ -54,3 +54,5 @@ certificates
 /public/workbox-*.js.map
 /public/worker-*.js
 /public/swe-worker-*.js
+
+supabase/backup.sql
