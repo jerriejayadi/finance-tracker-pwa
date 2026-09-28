@@ -27,7 +27,8 @@ import {
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useGetBudgets, useCreateBudgets, useUpdateBudget, useDeleteBudget, useGetBudgetMonths } from "@/services/budgets/budgets.hooks";
+import { useGetBudgets, useCreateBudgets, useSaveBudgetChanges, useGetBudgetMonths } from "@/services/budgets/budgets.hooks";
+import { toast } from "sonner";
 import { useGetCategories } from "@/services/categories/categories.hooks";
 import { useGetProfile } from "@/services/profile/profile.hooks";
 
@@ -89,8 +90,18 @@ function BudgetPageContent() {
     },
   });
 
-  const updateBudget = useUpdateBudget();
-  const deleteBudget = useDeleteBudget();
+  const closeEdit = () => {
+    setEditOpen(false);
+    setReallocateCategories(null);
+    setReallocateHighlights([]);
+  };
+
+  const saveBudgetChanges = useSaveBudgetChanges({
+    mutationConfig: {
+      onSuccess: closeEdit,
+      onError: (err) => toast.error(err.message),
+    },
+  });
 
   // Map to BudgetCategory shape for existing components
   const cats: BudgetCategory[] | null = React.useMemo(() => {
@@ -151,37 +162,21 @@ function BudgetPageContent() {
     createBudgets.mutate(payloads);
   };
 
-  const handleEditSave = (rows: BudgetCategory[]) => {
+  const handleEditSave = (rows: BudgetCategory[], removedIds: string[]) => {
     const existingRows = rows.filter((r) => !r.id.startsWith("new-"));
     const newRows = rows.filter((r) => r.id.startsWith("new-"));
 
-    // Update existing budgets
-    for (const r of existingRows) {
-      updateBudget.mutate({ id: r.id, planned_amount: r.budget, category: r.name });
-    }
-
-    // Create new budget entries
-    if (newRows.length > 0) {
-      const payloads = newRows.map((r) => {
-        const cat = categories.find((c) => c.name === r.name);
-        return {
-          month_year: key,
-          category: r.name,
-          category_id: cat?.id,
-          planned_amount: r.budget,
-          currency,
-        };
-      });
-      createBudgets.mutate(payloads);
-    }
-
-    setEditOpen(false);
-  };
-
-  const handleEditDelete = (ids: string[]) => {
-    for (const id of ids) {
-      deleteBudget.mutate(id);
-    }
+    saveBudgetChanges.mutate({
+      updates: existingRows.map((r) => ({ id: r.id, planned_amount: r.budget, category: r.name })),
+      creates: newRows.map((r) => ({
+        month_year: key,
+        category: r.name,
+        category_id: categories.find((c) => c.name === r.name)?.id,
+        planned_amount: r.budget,
+        currency,
+      })),
+      deleteIds: removedIds,
+    });
   };
 
   const handleReallocate = (fromId: string, toId: string, amount: number) => {
@@ -367,7 +362,7 @@ function BudgetPageContent() {
           month={month}
           categories={reallocateCategories ?? cats}
           onSave={handleEditSave}
-          onDelete={handleEditDelete}
+          saving={saveBudgetChanges.isPending}
           highlightedIds={reallocateHighlights}
         />
       )}

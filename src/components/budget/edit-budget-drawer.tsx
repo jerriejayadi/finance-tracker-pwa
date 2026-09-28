@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { X, Plus, Trash2, Pencil } from "lucide-react";
+import { X, Plus, Trash2, Pencil, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fmtIDR, fmtIDRShort } from "@/lib/format";
 import {
@@ -20,8 +20,9 @@ interface EditBudgetDrawerProps {
   year: number;
   month: number;
   categories: BudgetCategory[];
-  onSave: (rows: BudgetCategory[]) => void;
-  onDelete: (ids: string[]) => void;
+  /** `removedIds` are existing budget ids the user deleted in this session */
+  onSave: (rows: BudgetCategory[], removedIds: string[]) => void;
+  saving?: boolean;
   highlightedIds?: string[];
 }
 
@@ -32,7 +33,7 @@ export function EditBudgetDrawer({
   month,
   categories,
   onSave,
-  onDelete,
+  saving = false,
   highlightedIds = [],
 }: EditBudgetDrawerProps) {
   const [rows, setRows] = React.useState<CreateBudgetRow[]>([]);
@@ -100,9 +101,6 @@ export function EditBudgetDrawer({
   };
 
   const save = () => {
-    if (removedIds.length > 0) {
-      onDelete(removedIds);
-    }
     const finalRows: BudgetCategory[] = rows
       .filter((r) => r.enabled && r.budget > 0)
       .map((r) => ({
@@ -113,16 +111,17 @@ export function EditBudgetDrawer({
         spent: categories.find((c) => c.id === r.id)?.spent ?? 0,
         recent: categories.find((c) => c.id === r.id)?.recent ?? 0,
       }));
-    onSave(finalRows);
+    onSave(finalRows, removedIds);
   };
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <Drawer open={open} onOpenChange={(o) => !saving && onOpenChange(o)} dismissible={!saving}>
       <DrawerContent className="max-h-[92dvh]">
         <DrawerHeader className="flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-2">
             <button
               onClick={() => onOpenChange(false)}
+              disabled={saving}
               className="w-7 h-7 rounded-full bg-bg-2 border border-line flex items-center justify-center text-fg-1 cursor-pointer"
             >
               <X size={14} strokeWidth={1.75} />
@@ -349,16 +348,18 @@ export function EditBudgetDrawer({
           <div className="flex items-center gap-3 mt-6 pt-4 border-t border-line">
             <button
               onClick={() => onOpenChange(false)}
+              disabled={saving}
               className="flex-1 h-11 rounded-sm border border-line text-[14px] text-fg-1 cursor-pointer hover:bg-bg-2 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={save}
-              disabled={totalAllocated <= 0}
-              className="flex-1 h-11 rounded-sm bg-brand text-brand-ink text-[14px] font-medium cursor-pointer hover:bg-brand-hi transition-colors disabled:opacity-40"
+              disabled={totalAllocated <= 0 || saving}
+              className="flex-1 h-11 rounded-sm bg-brand text-brand-ink text-[14px] font-medium cursor-pointer hover:bg-brand-hi transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
             >
-              Save changes
+              {saving && <Loader2 size={16} className="animate-spin" />}
+              {saving ? "Saving…" : "Save changes"}
             </button>
           </div>
         </div>

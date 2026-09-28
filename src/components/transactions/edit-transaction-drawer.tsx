@@ -445,9 +445,10 @@ export function EditTransactionDrawer({
     updateTransaction.mutate({
       id: transaction.id,
       account_id: acctKey,
-      category_id: cat,
+      // "" = no category picked (e.g. imported as Uncategorized) — "" is not a valid uuid
+      category_id: cat || null,
       type: type === "expense" ? "Expense" : type === "income" ? "Income" : "Transfer",
-      category: selectedCategory?.name ?? "",
+      category: selectedCategory?.name ?? transaction.category,
       amount: amount,
       currency: profile?.currency_preference ?? "IDR",
       date: format(date, "yyyy-MM-dd"),

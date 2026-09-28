@@ -4,6 +4,7 @@ import {
   CreateBudgetPayload,
   UpdateBudgetPayload,
   BudgetMonthSummary,
+  SaveBudgetChangesPayload,
 } from "./budgets.service";
 import { QueryConfig, MutationConfig } from "@/lib/query-client";
 
@@ -94,6 +95,24 @@ export const useDeleteBudget = ({ mutationConfig }: UseDeleteBudgetParams = {}) 
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
       mutationConfig?.onSuccess?.(...args);
+    },
+  });
+};
+
+type UseSaveBudgetChangesParams = {
+  mutationConfig?: MutationConfig<typeof budgetsService.saveBudgetChanges>;
+};
+
+export const useSaveBudgetChanges = ({ mutationConfig }: UseSaveBudgetChangesParams = {}) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    ...mutationConfig,
+    mutationFn: (payload: SaveBudgetChangesPayload) => budgetsService.saveBudgetChanges(payload),
+    // Returning the promise keeps the mutation pending until fresh data is in,
+    // so the drawer closes onto the updated list. Runs on error too (partial writes).
+    onSettled: (...args) => {
+      mutationConfig?.onSettled?.(...args);
+      return queryClient.invalidateQueries({ queryKey: budgetKeys.all });
     },
   });
 };

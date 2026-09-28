@@ -35,7 +35,7 @@ export type CreateTransactionPayload = {
 export type UpdateTransactionPayload = {
   id: string;
   account_id: string;
-  category_id?: string;
+  category_id?: string | null;
   type: "Income" | "Expense" | "Transfer";
   category: string;
   amount: number;

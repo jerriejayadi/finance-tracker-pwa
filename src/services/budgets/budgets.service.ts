@@ -35,6 +35,12 @@ export type UpdateBudgetPayload = {
   currency?: string;
 };
 
+export type SaveBudgetChangesPayload = {
+  updates: ({ id: string } & UpdateBudgetPayload)[];
+  creates: CreateBudgetPayload[];
+  deleteIds: string[];
+};
+
 export type BudgetMonthSummary = {
   month_year: string;
   category_count: number;
@@ -134,6 +140,23 @@ export const budgetsService = {
 
     if (error) throw new Error(error.message);
     return data;
+  },
+
+  /** Applies an edit-drawer session (updates + creates + deletes) as one operation. */
+  saveBudgetChanges: async ({ updates, creates, deleteIds }: SaveBudgetChangesPayload): Promise<void> => {
+    const ops: Promise<unknown>[] = updates.map(({ id, ...payload }) =>
+      budgetsService.updateBudget(id, payload),
+    );
+    if (creates.length) ops.push(budgetsService.createBudgets(creates));
+    if (deleteIds.length) {
+      ops.push(
+        (async () => {
+          const { error } = await supabase.from("budgets").delete().in("id", deleteIds);
+          if (error) throw new Error(error.message);
+        })(),
+      );
+    }
+    await Promise.all(ops);
   },
 
   deleteBudget: async (id: string): Promise<void> => {

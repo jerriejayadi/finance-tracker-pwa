@@ -35,6 +35,8 @@ import { EditTransactionDrawer } from "@/components/transactions/edit-transactio
 import type { Transaction } from "@/services/transactions/transactions.service";
 import { DashboardOnboarding } from "@/components/home/dashboard-onboarding";
 import { BudgetNudge } from "@/components/home/budget-nudge";
+import { BulkImportButton } from "@/components/home/bulk-import-button";
+import { DashboardSkeleton } from "@/components/home/dashboard-skeleton";
 import { CurrencyPickerDrawer } from "@/components/profile/currency-picker-drawer";
 import { monthKey } from "@/components/budget/budget-constants";
 import { useGetBudgets } from "@/services/budgets/budgets.hooks";
@@ -182,17 +184,21 @@ export default function DashboardPage() {
   // Month label
   const monthLabel = format(new Date(selectedYear, selectedMonth), "MMMM \u00B7 yyyy", { locale: dateLocale });
 
-  const { data: totalTxCount = 0 } = useGetTransactionCount();
+  const { data: totalTxCount, isPending: txCountPending } = useGetTransactionCount();
 
   const currency = profile?.currency_preference ?? "IDR";
   const hasBudgets = budgets.length > 0;
+  // Only a confirmed zero shows first-run setup — not the pending/error state
   const showOnboarding = totalTxCount === 0;
 
   const navigateToBudgetCreate = () => router.push("/budget?create=true");
 
+  if (txCountPending) return <DashboardSkeleton />;
+
   return (
     <main className="flex flex-col gap-4">
       {showOnboarding ? (
+        <>
         <DashboardOnboarding
           currencyLabel={currency}
           hasBudgets={hasBudgets}
@@ -200,6 +206,15 @@ export default function DashboardPage() {
           onCreateBudget={navigateToBudgetCreate}
           onAddTransaction={() => openAddTx("expense")}
         />
+        <div className="mx-5 flex flex-col gap-4">
+          <div className="text-fg-2 flex items-center gap-3 text-[10px] font-medium tracking-[0.08em] uppercase">
+            <div className="bg-line h-px flex-1" />
+            {tDash("orBringHistory")}
+            <div className="bg-line h-px flex-1" />
+          </div>
+          <BulkImportButton />
+        </div>
+        </>
       ) : (
         <>
           {/* Budget nudge */}
@@ -284,6 +299,9 @@ export default function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* Bulk import */}
+      <BulkImportButton className="mx-4" />
 
       {/* Section title */}
       <div className="mt-[18px] flex items-center justify-between px-5">

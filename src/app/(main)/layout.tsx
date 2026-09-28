@@ -49,6 +49,8 @@ export default function DashboardLayout({
   children: ReactNode;
 }>) {
   const pathname = usePathname();
+  // Full-screen flows render without the app header & tab bar
+  const fullscreen = pathname.startsWith("/import");
   const [addTxOpen, setAddTxOpen] = React.useState(false);
   const [addTxType, setAddTxType] = React.useState<TxType>("expense");
   const { data: profile } = useGetProfile();
@@ -78,6 +80,7 @@ export default function DashboardLayout({
     <AuthGuard />
     <div className="flex flex-col min-h-dvh bg-bg-0 w-full mx-auto relative overflow-x-hidden">
       {/* App header */}
+      {!fullscreen && (
       <header className="flex items-center justify-between px-5 pt-3 pb-2">
         <div>
           <div className="text-[12px] text-fg-2">{tGreeting(greetingKey)}</div>
@@ -98,10 +101,12 @@ export default function DashboardLayout({
           </Link>
         </div>
       </header>
+      )}
 
-      <div className="flex-1 pb-24">{children}</div>
+      <div className={fullscreen ? "flex-1" : "flex-1 pb-24"}>{children}</div>
 
       {/* Tab bar */}
+      {!fullscreen && (
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full  grid grid-cols-5 bg-bg-0/[0.78] backdrop-blur-[18px] border-t border-line px-2 pt-2 pb-[26px] pb-safe z-30">
         {TAB_LEFT.map((item) => {
           const isActive = pathname === item.id;
@@ -157,11 +162,12 @@ export default function DashboardLayout({
           );
         })}
       </nav>
+      )}
 
       {/* Add Transaction Drawer */}
       <AddTransactionDrawer open={addTxOpen} onOpenChange={setAddTxOpen} defaultType={addTxType} />
       <InstallApp>
-        <InstallApp.Trigger />
+        {!fullscreen && <InstallApp.Trigger />}
         <InstallApp.Sheet />
       </InstallApp>
       <Toaster />

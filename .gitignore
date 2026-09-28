@@ -56,3 +56,5 @@ certificates
 /public/swe-worker-*.js
 
 supabase/backup.sql
+
+.playwright-mcp
