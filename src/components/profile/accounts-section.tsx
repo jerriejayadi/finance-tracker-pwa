@@ -115,7 +115,7 @@ function AddAccountDrawer({
   };
 
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange}>
+    <Drawer.Root open={open} onOpenChange={onOpenChange} repositionInputs={false}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/60 z-50" />
         <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 flex flex-col rounded-t-2xl bg-bg-0 border-t border-line max-h-[85dvh]">
