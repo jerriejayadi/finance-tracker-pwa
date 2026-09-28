@@ -130,7 +130,7 @@ export function CreateBudgetDrawer({
   const incomePresets = [5_000_000, 10_000_000, 15_000_000, 20_000_000, 30_000_000];
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <Drawer open={open} onOpenChange={onOpenChange} repositionInputs={false}>
       <DrawerContent className="max-h-[92dvh]">
         <DrawerHeader className="flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-2">
