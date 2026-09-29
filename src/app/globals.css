@@ -86,6 +86,41 @@
   --animate-dur-fast: 120ms;
   --animate-dur-base: 180ms;
   --animate-dur-slow: 280ms;
+
+  /* ---- Splash (cold start, ~2.1s total) ---- */
+  --animate-splash-glow: splash-glow 1400ms var(--ease-out) both;
+  --animate-splash-tile: splash-tile 560ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-splash-in: splash-grow 460ms var(--ease-out) 260ms both;
+  --animate-splash-balance: splash-balance 760ms var(--ease-out) 420ms both;
+  --animate-splash-rise: splash-rise 520ms var(--ease-out) 640ms both;
+  --animate-splash-rise-late: splash-rise 520ms var(--ease-out) 820ms both;
+  --animate-splash-out: splash-out 420ms var(--ease-standard) 1700ms forwards;
+
+  @keyframes splash-glow {
+    from { opacity: 0; transform: scale(0.4); }
+    to { opacity: 0.16; transform: scale(1); }
+  }
+  @keyframes splash-tile {
+    from { opacity: 0; transform: scale(0.5) rotate(-10deg); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes splash-grow {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+  /* Expense pill overshoots, then settles — the books balancing */
+  @keyframes splash-balance {
+    0% { transform: scaleX(0); }
+    55% { transform: scaleX(1.45); }
+    100% { transform: scaleX(1); }
+  }
+  @keyframes splash-rise {
+    from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
+    to { opacity: 1; transform: none; filter: none; }
+  }
+  @keyframes splash-out {
+    to { opacity: 0; visibility: hidden; transform: scale(1.04); }
+  }
 }
 
 /* ---- Dark mode (default) ---- */

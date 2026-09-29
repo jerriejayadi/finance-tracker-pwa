@@ -4,6 +4,7 @@ import { QueryProvider } from "@/providers/query-provider";
 import "./globals.css";
 
 import { PwaElements } from "@/components/pwa/pwa-elements";
+import { SplashScreen, splashInitScript } from "@/components/pwa/splash-screen";
 import { SerwistProvider } from "@serwist/turbopack/react";
 import { ThemeProvider } from "next-themes";
 import { LocaleProvider, localeInitScript } from "@/i18n/locale-provider";
@@ -52,8 +53,10 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: localeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: splashInitScript }} />
       </head>
       <body className="min-h-full flex flex-col [html[data-locale-pending]_&]:invisible">
+        <SplashScreen />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

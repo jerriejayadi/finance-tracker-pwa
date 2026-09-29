@@ -11,22 +11,22 @@ function LogoMark({ size = 24, className }: LogoMarkProps) {
     <svg
       width={size}
       height={size}
-      viewBox="0 0 32 32"
+      viewBox="0 0 44 44"
       fill="none"
       className={className}
     >
-      <rect width="32" height="32" rx="8" className="fill-brand" />
-      <text
-        x="16"
-        y="22"
-        textAnchor="middle"
+      <rect width="44" height="44" rx="10" className="fill-brand" />
+      {/* In / out: income pill over a shorter expense pill */}
+      <rect x="10" y="12" width="24" height="8" rx="4" className="fill-brand-ink" />
+      <rect
+        x="10"
+        y="24"
+        width="15"
+        height="8"
+        rx="4"
         className="fill-brand-ink"
-        fontSize="18"
-        fontWeight="700"
-        fontFamily="var(--font-mono)"
-      >
-        F
-      </text>
+        fillOpacity={0.45}
+      />
     </svg>
   );
 }

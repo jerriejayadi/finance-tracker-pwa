@@ -4,6 +4,7 @@ import * as React from "react";
 import { Download, Maximize2, Share, Smartphone, SquarePlus, X, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { LogoMark } from "@/components/ui/logo";
 import {
   Drawer,
   DrawerContent,
@@ -122,12 +123,7 @@ function InstallAppSheet() {
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerContent>
         <DrawerHeader className="items-center pt-2 text-center sm:text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/icon-192x192.png"
-            alt=""
-            className="border-line mx-auto mb-2 h-16 w-16 rounded-[18px] border"
-          />
+          <LogoMark size={64} className="mx-auto mb-2" />
           <DrawerTitle>{t("title")}</DrawerTitle>
           <DrawerDescription className="text-[13px]">{t("description")}</DrawerDescription>
         </DrawerHeader>
