@@ -29,12 +29,12 @@ type UseCreateCategoryParams = {
 export const useCreateCategory = ({ mutationConfig }: UseCreateCategoryParams = {}) => {
   const queryClient = useQueryClient();
   return useMutation({
+    ...mutationConfig,
     mutationFn: (payload: CreateCategoryPayload) =>
       categoriesService.createCategory(payload),
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: categoryKeys.all });
       mutationConfig?.onSuccess?.(...args);
     },
-    ...mutationConfig,
   });
 };

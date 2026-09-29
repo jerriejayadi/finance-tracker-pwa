@@ -32,6 +32,7 @@ import {
   Check,
 } from "lucide-react";
 import { useGetCategories } from "@/services/categories/categories.hooks";
+import { categoriesForTxType } from "@/services/categories/categories.utils";
 import { useGetAccountBalances } from "@/services/accounts/accounts.hooks";
 import { useUpdateTransaction } from "@/services/transactions/transactions.hooks";
 import { useGetBudgets } from "@/services/budgets/budgets.hooks";
@@ -342,9 +343,9 @@ export function EditTransactionDrawer({
   const { data: profile } = useGetProfile();
   const { data: categories = [] } = useGetCategories();
   const { data: accountBalances = [] } = useGetAccountBalances();
-  const now = new Date();
-  const currentMonthKey = monthKey(now.getFullYear(), now.getMonth());
-  const { data: budgets = [] } = useGetBudgets({ monthYear: currentMonthKey });
+  const { data: budgets = [] } = useGetBudgets({
+    monthYear: monthKey(date.getFullYear(), date.getMonth()),
+  });
   const updateTransaction = useUpdateTransaction({
     mutationConfig: {
       onSuccess: () => {
@@ -353,15 +354,23 @@ export function EditTransactionDrawer({
     },
   });
 
-  // Only show categories that have budgets defined for current month
-  const displayCategories = React.useMemo(() => {
-    if (budgets.length === 0) return [];
-    const budgetCategoryIds = new Set(budgets.map((b) => b.category_id).filter(Boolean));
-    const budgetCategoryNames = new Set(budgets.map((b) => b.category));
-    return categories.filter(
-      (c) => budgetCategoryIds.has(c.id) || budgetCategoryNames.has(c.name)
-    );
-  }, [categories, budgets]);
+  // All categories for the selected type, budgeted ones first
+  const budgetedIds = React.useMemo(
+    () => new Set(budgets.map((b) => b.category_id).filter((id): id is string => !!id)),
+    [budgets],
+  );
+  const displayCategories = React.useMemo(
+    () => categoriesForTxType(categories, type, budgetedIds),
+    [categories, type, budgetedIds],
+  );
+
+  // Switching type re-picks the category if the current one doesn't belong to the new type.
+  // Done here (not in an effect) so opening a transaction never silently changes its category.
+  const changeType = (next: TxType) => {
+    setType(next);
+    const options = categoriesForTxType(categories, next, budgetedIds);
+    if (!options.some((c) => c.id === cat)) setCat(options[0]?.id ?? "");
+  };
 
   // Active accounts
   const activeAccounts = React.useMemo(
@@ -507,7 +516,7 @@ export function EditTransactionDrawer({
                   }}
                 />
                 <button
-                  onClick={() => setType("expense")}
+                  onClick={() => changeType("expense")}
                   className={cn(
                     "relative z-[1] flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-medium rounded-xs cursor-pointer transition-colors",
                     type === "expense" ? "text-neg" : "text-fg-2",
@@ -516,7 +525,7 @@ export function EditTransactionDrawer({
                   <ArrowUpRight size={14} strokeWidth={1.75} /> Expense
                 </button>
                 <button
-                  onClick={() => setType("income")}
+                  onClick={() => changeType("income")}
                   className={cn(
                     "relative z-[1] flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-medium rounded-xs cursor-pointer transition-colors",
                     type === "income" ? "text-pos" : "text-fg-2",
@@ -525,7 +534,7 @@ export function EditTransactionDrawer({
                   <ArrowDownLeft size={14} strokeWidth={1.75} /> Income
                 </button>
                 <button
-                  onClick={() => setType("transfer")}
+                  onClick={() => changeType("transfer")}
                   className={cn(
                     "relative z-[1] flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-medium rounded-xs cursor-pointer transition-colors",
                     type === "transfer" ? "text-fg-0" : "text-fg-2",

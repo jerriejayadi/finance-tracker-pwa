@@ -32,6 +32,7 @@ import {
   Check,
 } from "lucide-react";
 import { useGetCategories } from "@/services/categories/categories.hooks";
+import { categoriesForTxType } from "@/services/categories/categories.utils";
 import { useGetAccountBalances } from "@/services/accounts/accounts.hooks";
 import { useCreateTransaction } from "@/services/transactions/transactions.hooks";
 import { useGetBudgets } from "@/services/budgets/budgets.hooks";
@@ -357,9 +358,9 @@ export function AddTransactionDrawer({
   const { data: profile } = useGetProfile();
   const { data: categories = [] } = useGetCategories();
   const { data: accountBalances = [] } = useGetAccountBalances();
-  const now = new Date();
-  const currentMonthKey = monthKey(now.getFullYear(), now.getMonth());
-  const { data: budgets = [] } = useGetBudgets({ monthYear: currentMonthKey });
+  const { data: budgets = [] } = useGetBudgets({
+    monthYear: monthKey(date.getFullYear(), date.getMonth()),
+  });
   const createTransaction = useCreateTransaction({
     mutationConfig: {
       onSuccess: () => {
@@ -368,17 +369,15 @@ export function AddTransactionDrawer({
     },
   });
 
-  // Show budgeted categories, or a single "Uncategorized" fallback when no budgets exist
+  // All categories for the selected type (budgeted ones first), or a single
+  // "Uncategorized" fallback when the type has none
   const UNCATEGORIZED_TILE = { id: "__uncategorized__", name: "Uncategorized", icon: "📝" };
 
   const displayCategories = React.useMemo(() => {
-    if (budgets.length === 0) return [UNCATEGORIZED_TILE];
-    const budgetCategoryIds = new Set(budgets.map((b) => b.category_id).filter(Boolean));
-    const budgetCategoryNames = new Set(budgets.map((b) => b.category));
-    return categories.filter(
-      (c) => budgetCategoryIds.has(c.id) || budgetCategoryNames.has(c.name)
-    );
-  }, [categories, budgets]);
+    const budgetedIds = new Set(budgets.map((b) => b.category_id).filter((id): id is string => !!id));
+    const list = categoriesForTxType(categories, type, budgetedIds);
+    return list.length > 0 ? list : [UNCATEGORIZED_TILE];
+  }, [categories, budgets, type]);
 
   // Active accounts
   const activeAccounts = React.useMemo(
@@ -395,9 +394,9 @@ export function AddTransactionDrawer({
     }
   }, [activeAccounts, acctKey]);
 
-  // Set default category when loaded
+  // Default to the first category, and re-pick when the type switch hides the current one
   React.useEffect(() => {
-    if (displayCategories.length > 0 && !cat) {
+    if (!displayCategories.some((c) => c.id === cat)) {
       setCat(displayCategories[0].id);
     }
   }, [displayCategories, cat]);

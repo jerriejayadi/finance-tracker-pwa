@@ -7,6 +7,7 @@ import {
   SaveBudgetChangesPayload,
 } from "./budgets.service";
 import { QueryConfig, MutationConfig } from "@/lib/query-client";
+import { categoryKeys } from "@/services/categories/categories.hooks";
 
 export const budgetKeys = {
   all: ["budgets"] as const,
@@ -59,6 +60,8 @@ export const useCreateBudgets = ({ mutationConfig }: UseCreateBudgetsParams = {}
       budgetsService.createBudgets(payloads),
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
+      // createBudgets may have created categories for custom budget names
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
       mutationConfig?.onSuccess?.(...args);
     },
   });
@@ -112,6 +115,7 @@ export const useSaveBudgetChanges = ({ mutationConfig }: UseSaveBudgetChangesPar
     // so the drawer closes onto the updated list. Runs on error too (partial writes).
     onSettled: (...args) => {
       mutationConfig?.onSettled?.(...args);
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
       return queryClient.invalidateQueries({ queryKey: budgetKeys.all });
     },
   });

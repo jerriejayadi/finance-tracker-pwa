@@ -155,6 +155,7 @@ function BudgetPageContent() {
         month_year: key,
         category: r.name,
         category_id: cat?.id,
+        icon: r.icon,
         planned_amount: r.budget,
         currency,
       };
@@ -172,6 +173,7 @@ function BudgetPageContent() {
         month_year: key,
         category: r.name,
         category_id: categories.find((c) => c.name === r.name)?.id,
+        icon: r.icon,
         planned_amount: r.budget,
         currency,
       })),

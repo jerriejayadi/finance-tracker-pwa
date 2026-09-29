@@ -24,6 +24,8 @@ export type CreateBudgetPayload = {
   month_year: string;
   category: string;
   category_id?: string;
+  /** Icon for the category row created when `category` doesn't exist yet; not stored on the budget */
+  icon?: string;
   planned_amount: number;
   currency: string;
 };
@@ -46,6 +48,50 @@ export type BudgetMonthSummary = {
   category_count: number;
   total_planned: number;
 };
+
+/**
+ * Resolves budget category names without a `category_id` to category rows, creating
+ * missing ones as the user's own expense categories so they show up in the
+ * transaction category picker. Returns name → id.
+ */
+async function ensureExpenseCategories(
+  userId: string,
+  payloads: CreateBudgetPayload[],
+): Promise<Map<string, string>> {
+  const missing = payloads.filter((p) => !p.category_id);
+  const ids = new Map<string, string>();
+  if (!missing.length) return ids;
+
+  const names = [...new Set(missing.map((p) => p.category))];
+  const { data: existing, error } = await supabase
+    .from("categories")
+    .select("id, name, user_id")
+    .or(`user_id.is.null,user_id.eq.${userId}`)
+    .in("name", names);
+  if (error) throw new Error(error.message);
+  // Prefer the user's own category over a system default of the same name
+  for (const c of existing.sort((a, b) => Number(a.user_id !== null) - Number(b.user_id !== null))) {
+    ids.set(c.name, c.id);
+  }
+
+  const toCreate = names.filter((n) => !ids.has(n));
+  if (toCreate.length) {
+    const { data: created, error: createError } = await supabase
+      .from("categories")
+      .insert(
+        toCreate.map((name) => ({
+          user_id: userId,
+          name,
+          icon: missing.find((p) => p.category === name)?.icon || "📝",
+          type: "expense",
+        })),
+      )
+      .select("id, name");
+    if (createError) throw new Error(createError.message);
+    for (const c of created) ids.set(c.name, c.id);
+  }
+  return ids;
+}
 
 export const budgetsService = {
   getBudgets: async (monthYear: string): Promise<BudgetWithSpent[]> => {
@@ -120,7 +166,12 @@ export const budgetsService = {
       throw new Error(authError?.message ?? "Not authenticated");
     }
 
-    const rows = payloads.map((p) => ({ ...p, user_id: authData.user.id }));
+    const categoryIds = await ensureExpenseCategories(authData.user.id, payloads);
+    const rows = payloads.map(({ icon: _icon, ...p }) => ({
+      ...p,
+      category_id: p.category_id ?? categoryIds.get(p.category),
+      user_id: authData.user.id,
+    }));
     const { data, error } = await supabase
       .from("budgets")
       .insert(rows)
