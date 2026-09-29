@@ -40,6 +40,17 @@ import { useGetBudgets } from "@/services/budgets/budgets.hooks";
 import { useGetProfile } from "@/services/profile/profile.hooks";
 import { monthKey } from "@/components/budget/budget-constants";
 import type { AccountBalance } from "@/services/accounts/accounts.service";
+import { toast } from "sonner";
+import { TransferAccounts } from "@/components/transactions/transfer-accounts";
+import {
+  EMPTY_TRANSFER,
+  defaultTransferPair,
+  isValidTransfer,
+  saveErrorKey,
+  setTransferSide,
+  swapTransfer,
+  type TransferPair,
+} from "@/services/transactions/transfer.utils";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -354,12 +365,21 @@ export function AddTransactionDrawer({
   }, [date]);
   const [acctKey, setAcctKey] = React.useState("");
   const [acctLabel, setAcctLabel] = React.useState("");
+  const [transfer, setTransfer] = React.useState<TransferPair>(EMPTY_TRANSFER);
+  // Which field the account picker is filling
+  const [pickerSide, setPickerSide] = React.useState<"account" | "from" | "to">("account");
+  const tTx = useTranslations("transaction");
 
   // Hooks
   const { data: profile } = useGetProfile();
   const { data: categories = [] } = useGetCategories();
   const { data: categoryUsage } = useGetCategoryUsage();
-  const { data: accountBalances = [] } = useGetAccountBalances();
+  const {
+    data: accountBalances = [],
+    isPending: accountsPending,
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useGetAccountBalances();
   const { data: budgets = [] } = useGetBudgets({
     monthYear: monthKey(date.getFullYear(), date.getMonth()),
   });
@@ -368,9 +388,14 @@ export function AddTransactionDrawer({
   const resetOnOpen = React.useRef(false);
   const createTransaction = useCreateTransaction({
     mutationConfig: {
-      onSuccess: () => {
+      onSuccess: (_data, variables) => {
+        toast.success(variables.type === "Transfer" ? tTx("transferSaved") : tTx("transactionSaved"));
         resetOnOpen.current = true;
         onOpenChange(false);
+      },
+      onError: (err) => {
+        const key = saveErrorKey(err);
+        toast.error(key === "saveFailed" ? tTx("saveFailed", { message: err.message }) : tTx(key));
       },
     },
   });
@@ -400,6 +425,16 @@ export function AddTransactionDrawer({
     }
   }, [activeAccounts, acctKey]);
 
+  // Default transfer pair: first active account → second
+  React.useEffect(() => {
+    if (!transfer.from && !transfer.to && activeAccounts.length > 0) {
+      setTransfer(defaultTransferPair(activeAccounts.map((a) => a.account_id)));
+    }
+  }, [activeAccounts, transfer]);
+
+  const accountName = (id: string) =>
+    accountBalances.find((a) => a.account_id === id)?.name ?? tTx("selectAccount");
+
   // Default to the first category, and re-pick when the type switch hides the current one
   React.useEffect(() => {
     if (!displayCategories.some((c) => c.id === cat)) {
@@ -422,6 +457,7 @@ export function AddTransactionDrawer({
         setCat("");
         setAcctKey("");
         setAcctLabel("");
+        setTransfer(EMPTY_TRANSFER);
       }
     }
   }, [open, defaultType]);
@@ -479,17 +515,35 @@ export function AddTransactionDrawer({
 
   const segIdx = type === "expense" ? 0 : type === "income" ? 1 : 2;
 
+  const isTransfer = type === "transfer";
+  const canSave = isTransfer ? isValidTransfer(transfer, amount) : amount > 0 && !!acctKey;
+
   const handleSave = () => {
+    const currency = profile?.currency_preference ?? "IDR";
+    const txDate = format(date, "yyyy-MM-dd");
+    if (isTransfer) {
+      createTransaction.mutate({
+        account_id: transfer.from,
+        to_account_id: transfer.to,
+        type: "Transfer",
+        category: "Transfer",
+        amount,
+        currency,
+        date: txDate,
+        note: note || undefined,
+      });
+      return;
+    }
     const isUncategorized = cat === "__uncategorized__";
     const selectedCategory = isUncategorized ? null : categories.find((c) => c.id === cat);
     createTransaction.mutate({
       account_id: acctKey,
       category_id: isUncategorized ? undefined : cat,
-      type: type === "expense" ? "Expense" : type === "income" ? "Income" : "Transfer",
+      type: type === "expense" ? "Expense" : "Income",
       category: isUncategorized ? "Uncategorized" : (selectedCategory?.name ?? ""),
-      amount: amount,
-      currency: profile?.currency_preference ?? "IDR",
-      date: format(date, "yyyy-MM-dd"),
+      amount,
+      currency,
+      date: txDate,
       merchant: note || undefined,
       note: note || undefined,
     });
@@ -513,11 +567,15 @@ export function AddTransactionDrawer({
         {/* Account Picker */}
         {view === "account" && (
           <AccountPickerView
-            value={acctKey}
+            value={pickerSide === "account" ? acctKey : transfer[pickerSide]}
             accounts={activeAccounts}
             onSelect={(k, lbl) => {
-              setAcctKey(k);
-              setAcctLabel(lbl);
+              if (pickerSide === "account") {
+                setAcctKey(k);
+                setAcctLabel(lbl);
+              } else {
+                setTransfer((p) => setTransferSide(p, pickerSide, k));
+              }
             }}
             onBack={() => setView("main")}
           />
@@ -670,12 +728,14 @@ export function AddTransactionDrawer({
               </div>
 
               {/* Category grid */}
-              <CategoryQuickGrid
-                categories={displayCategories}
-                value={cat}
-                onChange={setCat}
-                onMore={() => setView("category")}
-              />
+              {!isTransfer && (
+                <CategoryQuickGrid
+                  categories={displayCategories}
+                  value={cat}
+                  onChange={setCat}
+                  onMore={() => setView("category")}
+                />
+              )}
 
               {/* Fields */}
               <div className="flex flex-col border border-line bg-bg-0 rounded-md overflow-hidden mb-4">
@@ -700,27 +760,76 @@ export function AddTransactionDrawer({
                     className="text-fg-2 flex-shrink-0"
                   />
                 </div>
-                <div
-                  className="flex items-center gap-3 px-4 py-3.5 border-b border-line-soft cursor-pointer hover:bg-bg-1 transition-colors"
-                  onClick={() => setView("account")}
-                >
-                  <div className="w-8 h-8 rounded-lg bg-bg-2 border border-line flex items-center justify-center text-fg-1 flex-shrink-0">
-                    <Wallet size={16} strokeWidth={1.75} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[11px] text-fg-2 uppercase tracking-[0.04em]">
-                      Account
+                {isTransfer ? (
+                  <TransferAccounts>
+                    {accountsError ? (
+                      <TransferAccounts.Notice
+                        action={
+                          <Button variant="secondary" size="sm" onClick={() => refetchAccounts()}>
+                            {tTx("retry")}
+                          </Button>
+                        }
+                      >
+                        {tTx("accountsLoadFailed")}
+                      </TransferAccounts.Notice>
+                    ) : !accountsPending && activeAccounts.length < 2 ? (
+                      <TransferAccounts.Notice>{tTx("transferNeedsTwoAccounts")}</TransferAccounts.Notice>
+                    ) : (
+                      <>
+                        <TransferAccounts.Row
+                          label={tTx("from")}
+                          value={accountName(transfer.from)}
+                          loading={accountsPending}
+                          disabled={createTransaction.isPending}
+                          onClick={() => {
+                            setPickerSide("from");
+                            setView("account");
+                          }}
+                        />
+                        <TransferAccounts.Swap
+                          label={tTx("swapAccounts")}
+                          disabled={!transfer.to || createTransaction.isPending}
+                          onSwap={() => setTransfer(swapTransfer)}
+                        />
+                        <TransferAccounts.Row
+                          label={tTx("to")}
+                          value={accountName(transfer.to)}
+                          loading={accountsPending}
+                          disabled={createTransaction.isPending}
+                          onClick={() => {
+                            setPickerSide("to");
+                            setView("account");
+                          }}
+                        />
+                      </>
+                    )}
+                  </TransferAccounts>
+                ) : (
+                  <div
+                    className="flex items-center gap-3 px-4 py-3.5 border-b border-line-soft cursor-pointer hover:bg-bg-1 transition-colors"
+                    onClick={() => {
+                      setPickerSide("account");
+                      setView("account");
+                    }}
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-bg-2 border border-line flex items-center justify-center text-fg-1 flex-shrink-0">
+                      <Wallet size={16} strokeWidth={1.75} />
                     </div>
-                    <div className="text-[14px] text-fg-0 font-medium mt-0.5">
-                      {acctLabel || "Select account"}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] text-fg-2 uppercase tracking-[0.04em]">
+                        Account
+                      </div>
+                      <div className="text-[14px] text-fg-0 font-medium mt-0.5">
+                        {acctLabel || "Select account"}
+                      </div>
                     </div>
+                    <ChevronRight
+                      size={14}
+                      strokeWidth={1.75}
+                      className="text-fg-2 flex-shrink-0"
+                    />
                   </div>
-                  <ChevronRight
-                    size={14}
-                    strokeWidth={1.75}
-                    className="text-fg-2 flex-shrink-0"
-                  />
-                </div>
+                )}
                 <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-bg-1 transition-colors">
                   <div className="w-8 h-8 rounded-lg bg-bg-2 border border-line flex items-center justify-center text-fg-1 flex-shrink-0">
                     <FileText size={16} strokeWidth={1.75} />
@@ -740,20 +849,22 @@ export function AddTransactionDrawer({
               </div>
 
               {/* Recurring toggle */}
-              <div
-                className="flex items-center justify-between px-4 py-3 bg-bg-0 border border-line rounded-sm mb-4 cursor-pointer"
-                onClick={() => setRecurring(!recurring)}
-              >
-                <div>
-                  <div className="text-[13px] text-fg-0 flex items-center gap-2">
-                    <Repeat size={14} strokeWidth={1.75} /> Make recurring
+              {!isTransfer && (
+                <div
+                  className="flex items-center justify-between px-4 py-3 bg-bg-0 border border-line rounded-sm mb-4 cursor-pointer"
+                  onClick={() => setRecurring(!recurring)}
+                >
+                  <div>
+                    <div className="text-[13px] text-fg-0 flex items-center gap-2">
+                      <Repeat size={14} strokeWidth={1.75} /> Make recurring
+                    </div>
+                    <div className="text-[11px] text-fg-2 mt-0.5">
+                      Repeats every month on the {date.getDate()}th
+                    </div>
                   </div>
-                  <div className="text-[11px] text-fg-2 mt-0.5">
-                    Repeats every month on the {date.getDate()}th
-                  </div>
+                  <Toggle checked={recurring} onCheckedChange={setRecurring} />
                 </div>
-                <Toggle checked={recurring} onCheckedChange={setRecurring} />
-              </div>
+              )}
             </div>
 
             {/* Actions */}
@@ -763,7 +874,7 @@ export function AddTransactionDrawer({
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={amount === 0 || !acctKey || createTransaction.isPending}
+                disabled={!canSave || createTransaction.isPending}
               >
                 {createTransaction.isPending ? "Saving..." : "Save transaction"}
               </Button>
