@@ -363,9 +363,13 @@ export function AddTransactionDrawer({
   const { data: budgets = [] } = useGetBudgets({
     monthYear: monthKey(date.getFullYear(), date.getMonth()),
   });
+  // Set after a successful save; the form is cleared on the next open so the
+  // fields don't visibly blank out while the drawer animates closed
+  const resetOnOpen = React.useRef(false);
   const createTransaction = useCreateTransaction({
     mutationConfig: {
       onSuccess: () => {
+        resetOnOpen.current = true;
         onOpenChange(false);
       },
     },
@@ -407,6 +411,18 @@ export function AddTransactionDrawer({
     if (open) {
       setType(defaultType);
       setView("main");
+      if (resetOnOpen.current) {
+        resetOnOpen.current = false;
+        setAmount(0);
+        setEditingValue("");
+        setNote("");
+        setRecurring(false);
+        setDate(new Date());
+        // Empty values let the default-picking effects choose again
+        setCat("");
+        setAcctKey("");
+        setAcctLabel("");
+      }
     }
   }, [open, defaultType]);
 
