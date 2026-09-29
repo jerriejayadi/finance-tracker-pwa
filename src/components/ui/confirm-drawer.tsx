@@ -75,7 +75,7 @@ function ConfirmDrawerDescription({
 }: React.ComponentProps<typeof DrawerDescription>) {
   return (
     <DrawerDescription
-      className={cn("text-[13px] leading-relaxed max-w-[300px]", className)}
+      className={cn("text-[13px] leading-relaxed max-w-75", className)}
       {...props}
     />
   );

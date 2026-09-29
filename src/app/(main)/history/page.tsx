@@ -393,6 +393,14 @@ export default function HistoryPage() {
           selected={selected}
           onToggleSelect={toggleSelect}
           onTapRow={(tx) => setDetailTx(tx)}
+          onLongPressRow={(tx) => {
+            if (selectMode) {
+              toggleSelect(tx.id);
+            } else {
+              setSelectMode(true);
+              setSelected(new Set([tx.id]));
+            }
+          }}
           rangeLabel={rangeLabel}
         />
       ) : null}
