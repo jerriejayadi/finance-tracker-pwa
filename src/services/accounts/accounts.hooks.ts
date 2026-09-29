@@ -5,6 +5,7 @@ import {
   UpdateAccountPayload,
 } from "./accounts.service";
 import { QueryConfig, MutationConfig } from "@/lib/query-client";
+import { transactionKeys } from "@/services/transactions/transactions.hooks";
 
 export const accountKeys = {
   all: ["accounts"] as const,
@@ -93,6 +94,8 @@ export const useDeleteAccount = ({ mutationConfig }: UseDeleteAccountParams = {}
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: accountKeys.all });
       queryClient.invalidateQueries({ queryKey: accountKeys.balances });
+      // Deleting an account cascades its transactions, including transfers on either side
+      queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       mutationConfig?.onSuccess?.(...args);
     },
   });

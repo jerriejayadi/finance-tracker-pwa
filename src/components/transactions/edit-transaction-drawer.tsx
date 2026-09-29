@@ -756,7 +756,7 @@ export function EditTransactionDrawer({
                       >
                         {tTx("accountsLoadFailed")}
                       </TransferAccounts.Notice>
-                    ) : !accountsPending && activeAccounts.length < 2 ? (
+                    ) : !accountsPending && activeAccounts.length < 2 && !(transfer.from && transfer.to) ? (
                       <TransferAccounts.Notice>{tTx("transferNeedsTwoAccounts")}</TransferAccounts.Notice>
                     ) : (
                       <>
