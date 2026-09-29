@@ -16,6 +16,7 @@ export const transactionKeys = {
   count: () => ["transactions", "count"] as const,
   streak: () => ["transactions", "streak"] as const,
   yearlySummary: (year: number) => ["transactions", "yearly-summary", year] as const,
+  categoryUsage: () => ["transactions", "category-usage"] as const,
 };
 
 export const getTransactionsQueryOptions = (filters: TransactionFilters = {}) => ({
@@ -152,4 +153,13 @@ export const useGetYearlySummary = ({ year, queryConfig }: UseGetYearlySummaryPa
     ...getYearlySummaryQueryOptions(year),
     ...queryConfig,
   });
+};
+
+export const getCategoryUsageQueryOptions = () => ({
+  queryKey: transactionKeys.categoryUsage(),
+  queryFn: () => transactionsService.getCategoryUsage(),
+});
+
+export const useGetCategoryUsage = () => {
+  return useQuery(getCategoryUsageQueryOptions());
 };

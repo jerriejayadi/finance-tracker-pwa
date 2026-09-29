@@ -149,7 +149,11 @@
     "twoDaysAgo": "2 days ago",
     "selectAccount": "Select account",
     "searchAccounts": "Search accounts",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "selectCategory": "Select category",
+    "searchCategories": "Search categories",
+    "noCategoriesFound": "No categories found",
+    "moreCategories": "More"
   },
   "language": {
     "en": "English",

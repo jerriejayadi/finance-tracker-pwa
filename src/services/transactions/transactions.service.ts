@@ -216,6 +216,25 @@ export const transactionsService = {
     return streak;
   },
 
+  /** Transaction count per category over the last `days` days, for ranking the category picker. */
+  getCategoryUsage: async (days = 90): Promise<Record<string, number>> => {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("category_id")
+      .not("category_id", "is", null)
+      .gte("date", since.toISOString().split("T")[0]);
+
+    if (error) throw new Error(error.message);
+
+    const usage: Record<string, number> = {};
+    for (const row of data ?? []) {
+      usage[row.category_id] = (usage[row.category_id] ?? 0) + 1;
+    }
+    return usage;
+  },
+
   getYearlySummary: async (year: number): Promise<TransactionSummary> => {
     const dateFrom = `${year}-01-01`;
     const dateTo = `${year}-12-31`;

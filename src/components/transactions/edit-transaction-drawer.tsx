@@ -32,9 +32,10 @@ import {
   Check,
 } from "lucide-react";
 import { useGetCategories } from "@/services/categories/categories.hooks";
+import { CategoryQuickGrid, CategoryPickerView } from "@/components/transactions/category-picker";
 import { categoriesForTxType } from "@/services/categories/categories.utils";
 import { useGetAccountBalances } from "@/services/accounts/accounts.hooks";
-import { useUpdateTransaction } from "@/services/transactions/transactions.hooks";
+import { useGetCategoryUsage, useUpdateTransaction } from "@/services/transactions/transactions.hooks";
 import { useGetBudgets } from "@/services/budgets/budgets.hooks";
 import { useGetProfile } from "@/services/profile/profile.hooks";
 import { monthKey } from "@/components/budget/budget-constants";
@@ -48,7 +49,7 @@ import type { Transaction } from "@/components/history/history-constants";
 const QUICK_AMOUNTS = [50_000, 100_000, 200_000, 500_000, 1_000_000];
 
 type TxType = "expense" | "income" | "transfer";
-type ViewState = "main" | "date" | "account";
+type ViewState = "main" | "date" | "account" | "category";
 
 /* ------------------------------------------------------------------ */
 /*  Date Picker View                                                   */
@@ -342,6 +343,7 @@ export function EditTransactionDrawer({
   // Hooks
   const { data: profile } = useGetProfile();
   const { data: categories = [] } = useGetCategories();
+  const { data: categoryUsage } = useGetCategoryUsage();
   const { data: accountBalances = [] } = useGetAccountBalances();
   const { data: budgets = [] } = useGetBudgets({
     monthYear: monthKey(date.getFullYear(), date.getMonth()),
@@ -354,21 +356,21 @@ export function EditTransactionDrawer({
     },
   });
 
-  // All categories for the selected type, budgeted ones first
+  // All categories for the selected type, most-used then budgeted first
   const budgetedIds = React.useMemo(
     () => new Set(budgets.map((b) => b.category_id).filter((id): id is string => !!id)),
     [budgets],
   );
   const displayCategories = React.useMemo(
-    () => categoriesForTxType(categories, type, budgetedIds),
-    [categories, type, budgetedIds],
+    () => categoriesForTxType(categories, type, budgetedIds, categoryUsage),
+    [categories, type, budgetedIds, categoryUsage],
   );
 
   // Switching type re-picks the category if the current one doesn't belong to the new type.
   // Done here (not in an effect) so opening a transaction never silently changes its category.
   const changeType = (next: TxType) => {
     setType(next);
-    const options = categoriesForTxType(categories, next, budgetedIds);
+    const options = categoriesForTxType(categories, next, budgetedIds, categoryUsage);
     if (!options.some((c) => c.id === cat)) setCat(options[0]?.id ?? "");
   };
 
@@ -469,8 +471,8 @@ export function EditTransactionDrawer({
   return (
     <Drawer open={open} onOpenChange={onOpenChange} handleOnly>
       <DrawerContent
-        className="max-h-[92dvh] shrink transition-[max-height] duration-200"
-        style={vvHeight ? { maxHeight: vvHeight * 0.92 } : undefined}
+        className="h-[92dvh] max-h-[92dvh] shrink transition-[height,max-height] duration-200"
+        style={vvHeight ? { height: vvHeight * 0.92, maxHeight: vvHeight * 0.92 } : undefined}
       >
         {/* Date Picker */}
         {view === "date" && (
@@ -490,6 +492,16 @@ export function EditTransactionDrawer({
               setAcctKey(k);
               setAcctLabel(lbl);
             }}
+            onBack={() => setView("main")}
+          />
+        )}
+
+        {/* Category Picker */}
+        {view === "category" && (
+          <CategoryPickerView
+            categories={displayCategories}
+            value={cat}
+            onSelect={setCat}
             onBack={() => setView("main")}
           />
         )}
@@ -631,23 +643,12 @@ export function EditTransactionDrawer({
               </div>
 
               {/* Category grid */}
-              <div className="grid grid-cols-4 gap-2 mb-4">
-                {displayCategories.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => setCat(c.id)}
-                    className={cn(
-                      "aspect-square border rounded-md flex flex-col items-center justify-center gap-1 cursor-pointer text-[11px] transition-colors",
-                      cat === c.id
-                        ? "border-brand bg-brand-soft text-brand"
-                        : "border-line bg-bg-2 text-fg-1 hover:bg-bg-3",
-                    )}
-                  >
-                    <span className="text-[18px]">{c.icon}</span>
-                    <span>{c.name}</span>
-                  </button>
-                ))}
-              </div>
+              <CategoryQuickGrid
+                categories={displayCategories}
+                value={cat}
+                onChange={setCat}
+                onMore={() => setView("category")}
+              />
 
               {/* Fields */}
               <div className="flex flex-col border border-line bg-bg-0 rounded-md overflow-hidden mb-4">
