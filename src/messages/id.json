@@ -172,7 +172,18 @@
     "selectCategory": "Pilih kategori",
     "searchCategories": "Cari kategori",
     "noCategoriesFound": "Kategori tidak ditemukan",
-    "moreCategories": "Lainnya"
+    "moreCategories": "Lainnya",
+    "from": "Dari",
+    "to": "Ke",
+    "swapAccounts": "Tukar akun",
+    "transferNeedsTwoAccounts": "Tambahkan minimal 2 akun aktif untuk melakukan transfer.",
+    "transferSameAccount": "Akun asal dan tujuan harus berbeda.",
+    "accountsLoadFailed": "Gagal memuat akun.",
+    "retry": "Coba lagi",
+    "saveFailed": "Gagal menyimpan: {message}",
+    "transferSaved": "Transfer tersimpan",
+    "transactionSaved": "Transaksi tersimpan",
+    "transactionUpdated": "Transaksi diperbarui"
   },
   "language": {
     "en": "English",
