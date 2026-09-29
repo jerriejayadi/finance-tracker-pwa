@@ -128,14 +128,20 @@ New keys (namespace `transaction` unless noted): `from`, `to`, `swapAccounts` (a
 
 ---
 
-## 3. Error Handling
+## 3. Loading, Error, Success States
 
-- Client prevents From = To and zero amount; DB CHECK is the backstop. Supabase error message surfaces via the existing mutation error path.
+- **Loading:** From/To rows show skeletons while accounts load; Save disabled and reads "Saving..." while pending; rows and swap disabled while saving.
+- **Error:** accounts query failure → inline notice with Retry; fewer than 2 active accounts → inline notice; save failure → `toast.error` (CHECK violation mapped to `transferSameAccount`, otherwise `saveFailed` with the message), drawer stays open with input intact. Today neither drawer handles save errors — this adds it for all transaction types.
+- **Success:** `toast.success` ("Transfer saved" / "Transaction saved" / "Transaction updated"), drawer closes, balances and lists refresh via existing query invalidation.
+
+## 4. Error Handling
+
+- Client prevents From = To and zero amount; DB CHECK is the backstop.
 - Deleting an account cascades its transfers on both sides (consistent with current behavior for regular transactions).
 
 ---
 
-## 4. Verification
+## 5. Verification
 
 No test runner is configured.
 - `npm run lint` and `npm run build` pass.
