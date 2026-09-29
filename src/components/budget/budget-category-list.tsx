@@ -1,27 +1,22 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { fmtIDRShort } from "@/lib/format";
+import { budgetFillColor as fillColor, budgetPct as pctOf } from "./budget-constants";
 import type { BudgetCategory } from "./budget-types";
-
-function pctOf(spent: number, budget: number): number {
-  if (budget <= 0) return 0;
-  return Math.min(999, (spent / budget) * 100);
-}
-
-function fillColor(spent: number, budget: number): string {
-  const pct = pctOf(spent, budget);
-  if (pct >= 100) return "var(--neg)";
-  if (pct >= 85) return "var(--warn)";
-  return "var(--brand)";
-}
 
 interface BudgetCategoryListProps {
   categories: BudgetCategory[];
+  /** "YYYY-MM" of the month being shown, passed through to the detail page */
+  monthKey: string;
 }
 
-export function BudgetCategoryList({ categories }: BudgetCategoryListProps) {
+export function BudgetCategoryList({ categories, monthKey }: BudgetCategoryListProps) {
+  const t = useTranslations("budget");
   return (
     <div className="px-4 flex flex-col gap-1">
       {categories.map((c) => {
@@ -30,10 +25,11 @@ export function BudgetCategoryList({ categories }: BudgetCategoryListProps) {
         const left = c.budget - c.spent;
 
         return (
-          <div
+          <Link
             key={c.id}
+            href={`/budget/category?id=${c.id}&month=${monthKey}`}
             className={cn(
-              "p-3.5 rounded-lg bg-bg-1 border border-line",
+              "block p-3.5 rounded-lg bg-bg-1 border border-line transition-colors hover:bg-bg-2 active:bg-bg-2",
               over && "border-neg/30"
             )}
           >
@@ -48,7 +44,7 @@ export function BudgetCategoryList({ categories }: BudgetCategoryListProps) {
                     {c.name}
                   </div>
                   <div className="text-[11px] text-fg-2">
-                    {c.recent} transactions
+                    {t("transactionCount", { count: c.count })}
                   </div>
                 </div>
               </div>
@@ -70,10 +66,11 @@ export function BudgetCategoryList({ categories }: BudgetCategoryListProps) {
                   )}
                 >
                   {over
-                    ? `Over by ${fmtIDRShort(Math.abs(left))}`
-                    : `${fmtIDRShort(left)} left`}
+                    ? t("overBy", { amount: fmtIDRShort(Math.abs(left)) })
+                    : t("left", { amount: fmtIDRShort(left) })}
                 </div>
               </div>
+              <ChevronRight size={14} strokeWidth={1.75} className="text-fg-3 ml-1 flex-shrink-0" />
             </div>
 
             {/* Progress bar */}
@@ -92,7 +89,7 @@ export function BudgetCategoryList({ categories }: BudgetCategoryListProps) {
                 />
               )}
             </div>
-          </div>
+          </Link>
         );
       })}
     </div>

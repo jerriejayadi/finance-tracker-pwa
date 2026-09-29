@@ -48,6 +48,8 @@ export type UpdateTransactionPayload = {
 export type TransactionFilters = {
   type?: "income" | "expense";
   categoryIds?: string[];
+  /** Legacy rows with no category_id, matched by the free-text category name */
+  legacyCategory?: string;
   accountIds?: string[];
   amtMin?: number;
   amtMax?: number;
@@ -79,6 +81,9 @@ export const transactionsService = {
     }
     if (filters.categoryIds && filters.categoryIds.length > 0) {
       query = query.in("category_id", filters.categoryIds);
+    }
+    if (filters.legacyCategory) {
+      query = query.is("category_id", null).eq("category", filters.legacyCategory);
     }
     if (filters.accountIds && filters.accountIds.length > 0) {
       query = query.in("account_id", filters.accountIds);

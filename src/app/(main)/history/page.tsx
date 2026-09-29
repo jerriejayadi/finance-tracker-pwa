@@ -11,8 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
-import { fmtIDR, fmtIDRShort } from "@/lib/format";
+import { fmtIDRShort } from "@/lib/format";
 import { HistorySummary } from "@/components/history/history-summary";
 import { HistoryList } from "@/components/history/history-list";
 import {
@@ -28,12 +27,11 @@ import {
   type Transaction,
 } from "@/components/history/history-constants";
 import { useAddTransaction } from "../layout";
-import { useGetTransactions, useDeleteTransactions } from "@/services/transactions/transactions.hooks";
+import { useGetTransactions } from "@/services/transactions/transactions.hooks";
 import { useGetCategories } from "@/services/categories/categories.hooks";
 import { useGetAccounts } from "@/services/accounts/accounts.hooks";
 import { EditTransactionDrawer } from "@/components/transactions/edit-transaction-drawer";
-import { Button } from "@/components/ui/button";
-import { ConfirmDrawer } from "@/components/ui/confirm-drawer";
+import { DeleteTransactionsDrawer } from "@/components/history/delete-transactions-drawer";
 import { cn } from "@/lib/utils";
 
 type SortOption = "newest" | "oldest" | "highest" | "lowest";
@@ -108,16 +106,6 @@ export default function HistoryPage() {
       dateFrom: dateRange.dateFrom,
       dateTo: dateRange.dateTo,
       search: searchQ || undefined,
-    },
-  });
-
-  const deleteTransactions = useDeleteTransactions({
-    mutationConfig: {
-      onSuccess: () => {
-        setConfirmDeleteOpen(false);
-        exitSelectMode();
-      },
-      onError: (err) => toast.error(err.message),
     },
   });
 
@@ -440,57 +428,12 @@ export default function HistoryPage() {
         onDelete={() => detailTx && requestDelete([detailTx])}
         onEdit={(tx) => setEditTx(tx)}
       />
-      <ConfirmDrawer
+      <DeleteTransactionsDrawer
         open={confirmDeleteOpen}
-        onOpenChange={(open) => {
-          if (!deleteTransactions.isPending) setConfirmDeleteOpen(open);
-        }}
-      >
-        <ConfirmDrawer.Icon>
-          <Trash2 size={20} strokeWidth={1.75} />
-        </ConfirmDrawer.Icon>
-        <ConfirmDrawer.Title>
-          {t("deleteTitle", { count: pendingDelete.length })}
-        </ConfirmDrawer.Title>
-        <ConfirmDrawer.Description>{t("deleteDescription")}</ConfirmDrawer.Description>
-        {pendingDelete.length === 1 && (
-          <ConfirmDrawer.Body>
-            <div className="flex items-center gap-3 p-3 rounded-md bg-bg-0 border border-line text-left">
-              <div className="w-9 h-9 rounded-[10px] bg-bg-2 border border-line flex items-center justify-center text-[16px] flex-shrink-0">
-                {pendingDelete[0].category_icon || "💰"}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-medium text-fg-0 truncate">
-                  {pendingDelete[0].merchant || pendingDelete[0].category_name || pendingDelete[0].category}
-                </div>
-                <div className="font-mono text-[11px] text-fg-2 mt-0.5">{pendingDelete[0].date}</div>
-              </div>
-              <div
-                className={cn(
-                  "font-mono tabular-nums text-[13px] font-medium",
-                  pendingDelete[0].type === "Income" ? "text-pos" : "text-neg",
-                )}
-              >
-                {fmtIDR(Number(pendingDelete[0].amount))}
-              </div>
-            </div>
-          </ConfirmDrawer.Body>
-        )}
-        <ConfirmDrawer.Footer>
-          <ConfirmDrawer.Cancel disabled={deleteTransactions.isPending}>
-            {tCommon("cancel")}
-          </ConfirmDrawer.Cancel>
-          <Button
-            variant="danger"
-            disabled={deleteTransactions.isPending}
-            onClick={() => deleteTransactions.mutate(pendingDelete.map((tx) => tx.id))}
-          >
-            {deleteTransactions.isPending
-              ? t("deleting")
-              : `${tCommon("delete")}${pendingDelete.length > 1 ? ` (${pendingDelete.length})` : ""}`}
-          </Button>
-        </ConfirmDrawer.Footer>
-      </ConfirmDrawer>
+        onOpenChange={setConfirmDeleteOpen}
+        transactions={pendingDelete}
+        onDeleted={exitSelectMode}
+      />
       <EditTransactionDrawer
         open={!!editTx}
         onOpenChange={(open) => {

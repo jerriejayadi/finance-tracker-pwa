@@ -122,7 +122,7 @@ export function CreateBudgetDrawer({
         icon: r.icon,
         budget: r.budget,
         spent: 0,
-        recent: 0,
+        count: 0,
       }));
     onSave(finalRows);
   };

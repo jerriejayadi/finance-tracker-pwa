@@ -4,7 +4,8 @@ export interface BudgetCategory {
   icon: string;
   budget: number;
   spent: number;
-  recent: number;
+  /** Expense transactions this month */
+  count: number;
 }
 
 export interface BudgetCategoryTemplate {

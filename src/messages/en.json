@@ -127,7 +127,15 @@
     "title": "Budget",
     "noBudgetNudge": "No budget set for {month}",
     "setupBudget": "Set up budget",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "transactionCount": "{count, plural, =0 {No transactions} one {# transaction} other {# transactions}}",
+    "left": "{amount} left",
+    "overBy": "Over by {amount}",
+    "ofBudget": "of {amount}",
+    "noSpending": "No spending in this category yet this month.",
+    "notFound": "This budget no longer exists.",
+    "backToBudget": "Back to budget",
+    "dailyLeft": "≈ {amount} / day for the rest of the month"
   },
   "history": {
     "title": "Transaction History",

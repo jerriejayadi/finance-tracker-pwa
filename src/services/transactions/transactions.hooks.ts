@@ -7,6 +7,7 @@ import {
 } from "./transactions.service";
 import { QueryConfig, MutationConfig } from "@/lib/query-client";
 import { accountKeys } from "@/services/accounts/accounts.hooks";
+import { budgetKeys } from "@/services/budgets/budgets.hooks";
 
 export const transactionKeys = {
   all: ["transactions"] as const,
@@ -76,6 +77,8 @@ export const useCreateTransaction = ({
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       queryClient.invalidateQueries({ queryKey: accountKeys.balances });
+      // Budget "spent" is derived from transactions
+      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
       mutationConfig?.onSuccess?.(...args);
     },
   });
@@ -96,6 +99,8 @@ export const useUpdateTransaction = ({
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       queryClient.invalidateQueries({ queryKey: accountKeys.balances });
+      // Budget "spent" is derived from transactions
+      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
       mutationConfig?.onSuccess?.(...args);
     },
   });
@@ -115,6 +120,8 @@ export const useDeleteTransactions = ({
     onSuccess: (...args) => {
       queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       queryClient.invalidateQueries({ queryKey: accountKeys.balances });
+      // Budget "spent" is derived from transactions
+      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
       mutationConfig?.onSuccess?.(...args);
     },
   });

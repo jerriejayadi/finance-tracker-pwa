@@ -4,6 +4,7 @@ import { BudgetCategoryList } from "@/components/budget/budget-category-list";
 import {
   monthKey,
   monthLabel,
+  parseMonthKey,
 } from "@/components/budget/budget-constants";
 import { BudgetEmptyState } from "@/components/budget/budget-empty-state";
 import { BudgetHero } from "@/components/budget/budget-hero";
@@ -50,9 +51,13 @@ export default function BudgetPage() {
 function BudgetPageContent() {
   const tCommon = useTranslations("common");
   const searchParams = useSearchParams();
-  const now = new Date();
-  const [year, setYear] = React.useState(now.getFullYear());
-  const [month, setMonth] = React.useState(now.getMonth());
+  // ?month=YYYY-MM restores the month when coming back from a category page
+  const [initialMonth] = React.useState(() => {
+    const now = new Date();
+    return parseMonthKey(searchParams.get("month")) ?? { y: now.getFullYear(), m: now.getMonth() };
+  });
+  const [year, setYear] = React.useState(initialMonth.y);
+  const [month, setMonth] = React.useState(initialMonth.m);
   const [filter, setFilter] = React.useState<FilterType>("all");
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -71,6 +76,16 @@ function BudgetPageContent() {
   const [reallocateHighlights, setReallocateHighlights] = React.useState<string[]>([]);
 
   const key = monthKey(year, month);
+
+  // Mirror the month into the URL (no navigation) so back from a category page lands on it.
+  // Drops ?create too, so changing month doesn't re-trigger the create drawer.
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("month") === key && !params.has("create")) return;
+    params.set("month", key);
+    params.delete("create");
+    window.history.replaceState(null, "", `?${params}`);
+  }, [key]);
 
   const { data: profile } = useGetProfile();
   const currency = profile?.currency_preference ?? "IDR";
@@ -112,7 +127,7 @@ function BudgetPageContent() {
       icon: b.category_icon || "",
       budget: Number(b.planned_amount),
       spent: b.spent,
-      recent: b.recent,
+      count: b.count,
     }));
   }, [budgetData]);
 
@@ -289,7 +304,7 @@ function BudgetPageContent() {
             </Chip>
           </div>
 
-          <BudgetCategoryList categories={filtered} />
+          <BudgetCategoryList categories={filtered} monthKey={key} />
           <BudgetInsight
             month={month}
             categories={cats}
@@ -339,7 +354,7 @@ function BudgetPageContent() {
                 icon: b.category_icon || "",
                 budget: Number(b.planned_amount),
                 spent: 0,
-                recent: 0,
+                count: 0,
               }))
             : null
         }

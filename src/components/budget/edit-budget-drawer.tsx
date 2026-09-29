@@ -109,7 +109,7 @@ export function EditBudgetDrawer({
         icon: r.icon,
         budget: r.budget,
         spent: categories.find((c) => c.id === r.id)?.spent ?? 0,
-        recent: categories.find((c) => c.id === r.id)?.recent ?? 0,
+        count: categories.find((c) => c.id === r.id)?.count ?? 0,
       }));
     onSave(finalRows, removedIds);
   };

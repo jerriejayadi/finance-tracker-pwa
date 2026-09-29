@@ -43,6 +43,11 @@ const navKeys: Record<string, "home" | "history" | "budget" | "you"> = {
   "/profile": "you",
 };
 
+/** Tab is active on its own route and its sub-routes (e.g. /budget/category). */
+function isTabActive(pathname: string, href: string): boolean {
+  return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
+}
+
 export default function DashboardLayout({
   children,
 }: Readonly<{
@@ -109,7 +114,7 @@ export default function DashboardLayout({
       {!fullscreen && (
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full  grid grid-cols-5 bg-bg-0/[0.78] backdrop-blur-[18px] border-t border-line px-2 pt-2 pb-[26px] pb-safe z-30">
         {TAB_LEFT.map((item) => {
-          const isActive = pathname === item.id;
+          const isActive = isTabActive(pathname, item.id);
           const Icon = item.icon;
           return (
             <Link
@@ -141,7 +146,7 @@ export default function DashboardLayout({
         </div>
 
         {TAB_RIGHT.map((item) => {
-          const isActive = pathname === item.id;
+          const isActive = isTabActive(pathname, item.id);
           const Icon = item.icon;
           return (
             <Link

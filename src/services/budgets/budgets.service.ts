@@ -17,7 +17,8 @@ export type Budget = {
 
 export type BudgetWithSpent = Budget & {
   spent: number;
-  recent: number;
+  /** Number of expense transactions in this category for the month */
+  count: number;
 };
 
 export type CreateBudgetPayload = {
@@ -115,16 +116,9 @@ export const budgetsService = {
     const dateFrom = `${monthYear}-01`;
     const dateTo = `${monthYear}-${String(daysInMonth).padStart(2, "0")}`;
 
-    // 7-day window for "recent" spending
-    const today = new Date();
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 7);
-    const recentFrom = sevenDaysAgo.toISOString().split("T")[0];
-    const recentTo = today.toISOString().split("T")[0];
-
     const { data: txData, error: txError } = await supabase
       .from("transactions")
-      .select("category, category_id, amount, date")
+      .select("category, category_id, amount")
       .eq("type", "Expense")
       .gte("date", dateFrom)
       .lte("date", dateTo);
@@ -132,14 +126,12 @@ export const budgetsService = {
     if (txError) throw new Error(txError.message);
 
     // Build spent map
-    const spentMap = new Map<string, { total: number; recent: number }>();
+    const spentMap = new Map<string, { total: number; count: number }>();
     for (const tx of txData ?? []) {
       const key = tx.category_id || tx.category;
-      const entry = spentMap.get(key) || { total: 0, recent: 0 };
+      const entry = spentMap.get(key) || { total: 0, count: 0 };
       entry.total += Number(tx.amount);
-      if (tx.date >= recentFrom && tx.date <= recentTo) {
-        entry.recent += Number(tx.amount);
-      }
+      entry.count += 1;
       spentMap.set(key, entry);
     }
 
@@ -147,7 +139,7 @@ export const budgetsService = {
       const row = b as Record<string, unknown>;
       const categories = row.categories as { name: string; icon: string } | null;
       const spentKey = (b.category_id as string) || (b.category as string);
-      const spentEntry = spentMap.get(spentKey) || { total: 0, recent: 0 };
+      const spentEntry = spentMap.get(spentKey) || { total: 0, count: 0 };
 
       const { categories: _cat, ...rest } = row;
       return {
@@ -155,7 +147,7 @@ export const budgetsService = {
         category_name: categories?.name ?? b.category,
         category_icon: categories?.icon ?? "",
         spent: spentEntry.total,
-        recent: spentEntry.recent,
+        count: spentEntry.count,
       } as BudgetWithSpent;
     });
   },
