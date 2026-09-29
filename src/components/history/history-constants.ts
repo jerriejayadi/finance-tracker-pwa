@@ -9,6 +9,8 @@ export interface Transaction {
   type: "Income" | "Expense" | "Transfer";
   account_name?: string;
   account_id: string;
+  to_account_id: string | null;
+  to_account_name?: string;
   category_id: string | null;
   note: string | null;
   created_at: string;
@@ -28,7 +30,7 @@ export type DateRangeId = (typeof DATE_RANGES)[number]["id"];
 
 export interface Filters {
   range: DateRangeId;
-  type: "all" | "income" | "expense";
+  type: "all" | "income" | "expense" | "transfer";
   cats: string[];
   accts: string[];
   amtMin: number;
