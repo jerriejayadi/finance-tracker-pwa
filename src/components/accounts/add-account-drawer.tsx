@@ -1,16 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, X } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { fmtIDR } from "@/lib/format";
-import {
-  useGetAccountBalances,
-  useCreateAccount,
-  useDeleteAccount,
-} from "@/services/accounts/accounts.hooks";
-import type { Account } from "@/services/accounts/accounts.service";
+import { X } from "lucide-react";
 import { Drawer } from "vaul";
+import { cn } from "@/lib/utils";
+import { useCreateAccount } from "@/services/accounts/accounts.hooks";
+import type { Account } from "@/services/accounts/accounts.service";
 
 const ACCOUNT_TYPES: { value: Account["type"]; label: string; icon: string }[] = [
   { value: "cash", label: "Cash", icon: "💵" },
@@ -20,70 +15,7 @@ const ACCOUNT_TYPES: { value: Account["type"]; label: string; icon: string }[] =
   { value: "investment", label: "Investment", icon: "📈" },
 ];
 
-export function AccountsSection() {
-  const { data: accounts = [] } = useGetAccountBalances();
-  const [drawerOpen, setDrawerOpen] = React.useState(false);
-
-  const deleteAccount = useDeleteAccount();
-
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between px-1">
-        <h3 className="text-[11px] font-semibold text-fg-2 uppercase tracking-[0.06em]">
-          Accounts
-        </h3>
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="text-[12px] text-brand flex items-center gap-0.5 cursor-pointer hover:text-brand-hi"
-        >
-          <Plus size={12} strokeWidth={2} /> Add
-        </button>
-      </div>
-
-      {accounts.length === 0 ? (
-        <div className="py-6 text-center text-[13px] text-fg-2">
-          No accounts yet
-        </div>
-      ) : (
-        <div className="bg-bg-1 border border-line rounded-lg overflow-hidden divide-y divide-line">
-          {accounts.map((acc) => (
-            <div
-              key={acc.account_id}
-              className="flex items-center gap-3 px-4 py-3"
-            >
-              <div className="w-9 h-9 rounded-lg bg-bg-2 border border-line flex items-center justify-center text-[16px]">
-                {acc.icon || "💰"}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-medium text-fg-0 truncate">
-                  {acc.name}
-                </div>
-                <div className="text-[12px] text-fg-2 font-mono mt-0.5">
-                  {acc.type}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-mono tabular-nums text-[14px] font-medium text-fg-0">
-                  {fmtIDR(Number(acc.balance))}
-                </div>
-              </div>
-              <button
-                onClick={() => deleteAccount.mutate(acc.account_id)}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-fg-2 hover:text-neg hover:bg-neg-soft cursor-pointer transition-colors"
-              >
-                <Trash2 size={13} strokeWidth={1.75} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <AddAccountDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
-    </div>
-  );
-}
-
-function AddAccountDrawer({
+export function AddAccountDrawer({
   open,
   onOpenChange,
 }: {

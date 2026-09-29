@@ -38,7 +38,15 @@
     "month": "Bulan",
     "year": "Tahun",
     "bulkImport": "Impor transaksi massal",
-    "orBringHistory": "Atau bawa riwayatmu"
+    "orBringHistory": "Atau bawa riwayatmu",
+    "accounts": "Akun",
+    "add": "Tambah",
+    "addAccount": "Tambah akun",
+    "done": "Selesai",
+    "deleting": "Menghapus...",
+    "deleteAccount": "Hapus akun",
+    "deleteAccountTitle": "Hapus {name}?",
+    "deleteAccountDescription": "Semua transaksi di akun ini juga akan terhapus. Tindakan ini tidak bisa dibatalkan."
   },
   "profile": {
     "title": "Profil",

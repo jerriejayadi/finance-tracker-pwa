@@ -36,6 +36,7 @@ import type { Transaction } from "@/services/transactions/transactions.service";
 import { DashboardOnboarding } from "@/components/home/dashboard-onboarding";
 import { BudgetNudge } from "@/components/home/budget-nudge";
 import { BulkImportButton } from "@/components/home/bulk-import-button";
+import { AccountsStrip } from "@/components/home/accounts-strip";
 import { DashboardSkeleton } from "@/components/home/dashboard-skeleton";
 import { CurrencyPickerDrawer } from "@/components/profile/currency-picker-drawer";
 import { monthKey } from "@/components/budget/budget-constants";
@@ -268,6 +269,9 @@ export default function DashboardPage() {
           </button>
         </div>
       </section>
+
+      {/* Accounts */}
+      <AccountsStrip />
 
       {/* In/Out strip */}
       <section className="bg-bg-1 border-line mx-4 grid grid-cols-[1fr_1px_1fr] items-center rounded-md border py-3.5">

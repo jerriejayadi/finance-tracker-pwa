@@ -38,7 +38,15 @@
     "month": "Month",
     "year": "Year",
     "bulkImport": "Bulk import transactions",
-    "orBringHistory": "Or bring your history"
+    "orBringHistory": "Or bring your history",
+    "accounts": "Accounts",
+    "add": "Add",
+    "addAccount": "Add account",
+    "done": "Done",
+    "deleting": "Deleting...",
+    "deleteAccount": "Delete account",
+    "deleteAccountTitle": "Delete {name}?",
+    "deleteAccountDescription": "Every transaction in this account will be deleted too. This can't be undone."
   },
   "profile": {
     "title": "Profile",
