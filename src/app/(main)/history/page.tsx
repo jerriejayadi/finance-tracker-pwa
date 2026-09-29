@@ -11,7 +11,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { fmtIDRShort } from "@/lib/format";
+import { toast } from "sonner";
+import { fmtIDR, fmtIDRShort } from "@/lib/format";
 import { HistorySummary } from "@/components/history/history-summary";
 import { HistoryList } from "@/components/history/history-list";
 import {
@@ -31,6 +32,8 @@ import { useGetTransactions, useDeleteTransactions } from "@/services/transactio
 import { useGetCategories } from "@/services/categories/categories.hooks";
 import { useGetAccounts } from "@/services/accounts/accounts.hooks";
 import { EditTransactionDrawer } from "@/components/transactions/edit-transaction-drawer";
+import { Button } from "@/components/ui/button";
+import { ConfirmDrawer } from "@/components/ui/confirm-drawer";
 import { cn } from "@/lib/utils";
 
 type SortOption = "newest" | "oldest" | "highest" | "lowest";
@@ -50,6 +53,9 @@ export default function HistoryPage() {
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [detailTx, setDetailTx] = React.useState<Transaction | null>(null);
   const [editTx, setEditTx] = React.useState<Transaction | null>(null);
+  // Kept after close so the drawer content doesn't vanish mid-animation
+  const [pendingDelete, setPendingDelete] = React.useState<Transaction[]>([]);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
   const [selectMode, setSelectMode] = React.useState(false);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [filters, setFilters] = React.useState<Filters>(DEFAULT_FILTERS);
@@ -106,8 +112,20 @@ export default function HistoryPage() {
   });
 
   const deleteTransactions = useDeleteTransactions({
-    mutationConfig: { onSuccess: () => exitSelectMode() },
+    mutationConfig: {
+      onSuccess: () => {
+        setConfirmDeleteOpen(false);
+        exitSelectMode();
+      },
+      onError: (err) => toast.error(err.message),
+    },
   });
+
+  const requestDelete = (txs: Transaction[]) => {
+    if (txs.length === 0) return;
+    setPendingDelete(txs);
+    setConfirmDeleteOpen(true);
+  };
 
   const sortedTransactions = React.useMemo(() => {
     const txs = [...transactions];
@@ -387,7 +405,7 @@ export default function HistoryPage() {
             Recategorize
           </button>
           <button
-            onClick={() => deleteTransactions.mutate(Array.from(selected))}
+            onClick={() => requestDelete(transactions.filter((tx) => selected.has(tx.id)))}
             className="flex-1 h-11 rounded-sm bg-neg text-white text-[13px] font-medium flex items-center justify-center gap-2 cursor-pointer hover:brightness-105 transition-all"
           >
             <Trash2 size={14} strokeWidth={1.75} />
@@ -411,9 +429,60 @@ export default function HistoryPage() {
           if (!open) setDetailTx(null);
         }}
         tx={detailTx}
-        onDelete={(id) => deleteTransactions.mutate([id])}
+        onDelete={() => detailTx && requestDelete([detailTx])}
         onEdit={(tx) => setEditTx(tx)}
       />
+      <ConfirmDrawer
+        open={confirmDeleteOpen}
+        onOpenChange={(open) => {
+          if (!deleteTransactions.isPending) setConfirmDeleteOpen(open);
+        }}
+      >
+        <ConfirmDrawer.Icon>
+          <Trash2 size={20} strokeWidth={1.75} />
+        </ConfirmDrawer.Icon>
+        <ConfirmDrawer.Title>
+          {t("deleteTitle", { count: pendingDelete.length })}
+        </ConfirmDrawer.Title>
+        <ConfirmDrawer.Description>{t("deleteDescription")}</ConfirmDrawer.Description>
+        {pendingDelete.length === 1 && (
+          <ConfirmDrawer.Body>
+            <div className="flex items-center gap-3 p-3 rounded-md bg-bg-0 border border-line text-left">
+              <div className="w-9 h-9 rounded-[10px] bg-bg-2 border border-line flex items-center justify-center text-[16px] flex-shrink-0">
+                {pendingDelete[0].category_icon || "💰"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[14px] font-medium text-fg-0 truncate">
+                  {pendingDelete[0].merchant || pendingDelete[0].category_name || pendingDelete[0].category}
+                </div>
+                <div className="font-mono text-[11px] text-fg-2 mt-0.5">{pendingDelete[0].date}</div>
+              </div>
+              <div
+                className={cn(
+                  "font-mono tabular-nums text-[13px] font-medium",
+                  pendingDelete[0].type === "Income" ? "text-pos" : "text-neg",
+                )}
+              >
+                {fmtIDR(Number(pendingDelete[0].amount))}
+              </div>
+            </div>
+          </ConfirmDrawer.Body>
+        )}
+        <ConfirmDrawer.Footer>
+          <ConfirmDrawer.Cancel disabled={deleteTransactions.isPending}>
+            {tCommon("cancel")}
+          </ConfirmDrawer.Cancel>
+          <Button
+            variant="danger"
+            disabled={deleteTransactions.isPending}
+            onClick={() => deleteTransactions.mutate(pendingDelete.map((tx) => tx.id))}
+          >
+            {deleteTransactions.isPending
+              ? t("deleting")
+              : `${tCommon("delete")}${pendingDelete.length > 1 ? ` (${pendingDelete.length})` : ""}`}
+          </Button>
+        </ConfirmDrawer.Footer>
+      </ConfirmDrawer>
       <EditTransactionDrawer
         open={!!editTx}
         onOpenChange={(open) => {

@@ -133,7 +133,10 @@
     "title": "Transaction History",
     "sortBy": "Sort by",
     "date": "Date",
-    "amount": "Amount"
+    "amount": "Amount",
+    "deleteTitle": "Delete {count, plural, one {transaction} other {# transactions}}?",
+    "deleteDescription": "This can't be undone. Account balances will update.",
+    "deleting": "Deleting..."
   },
   "transaction": {
     "addTransaction": "Add transaction",

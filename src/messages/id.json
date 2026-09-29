@@ -133,7 +133,10 @@
     "title": "Riwayat Transaksi",
     "sortBy": "Urutkan",
     "date": "Tanggal",
-    "amount": "Jumlah"
+    "amount": "Jumlah",
+    "deleteTitle": "Hapus {count, plural, one {transaksi} other {# transaksi}}?",
+    "deleteDescription": "Tindakan ini tidak bisa dibatalkan. Saldo akun akan diperbarui.",
+    "deleting": "Menghapus..."
   },
   "transaction": {
     "addTransaction": "Tambah transaksi",
