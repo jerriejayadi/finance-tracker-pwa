@@ -1,6 +1,5 @@
 "use client";
 
-import { AccountsSection } from "@/components/profile/accounts-section";
 import { CurrencyPickerDrawer } from "@/components/profile/currency-picker-drawer";
 import { EditProfileDrawer } from "@/components/profile/edit-profile-drawer";
 import { promptInstall, useInstallPrompt } from "@/components/pwa/install-prompt";
@@ -220,9 +219,6 @@ export default function ProfilePage() {
             value={firstDayLabel}
           /> */}
         </SettingsGroup>
-
-        {/* Accounts */}
-        <AccountsSection />
 
         {/* Preferences */}
         <SettingsGroup label={t("preferences")}>

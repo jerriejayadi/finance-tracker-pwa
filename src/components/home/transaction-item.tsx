@@ -7,8 +7,8 @@ interface TransactionItemProps {
   category: string;
   amount: number;
   time: string;
-  type: "income" | "expense";
-  icon?: string;
+  type: "income" | "expense" | "transfer";
+  icon?: React.ReactNode;
   recurring?: boolean;
   className?: string;
   onClick?: () => void;
@@ -26,7 +26,8 @@ export function TransactionItem({
   onClick,
 }: TransactionItemProps) {
   const isIncome = type === "income";
-  const sign = isIncome ? "+" : "\u2212";
+  // Transfers only move money between the user's own accounts, so no sign
+  const sign = type === "transfer" ? "" : isIncome ? "+ " : "\u2212 ";
 
   return (
     <div
@@ -63,7 +64,7 @@ export function TransactionItem({
           isIncome ? "text-pos" : "text-fg-0"
         )}
       >
-        {sign} Rp {Math.abs(amount).toLocaleString("id-ID")}
+        {sign}Rp {Math.abs(amount).toLocaleString("id-ID")}
       </div>
     </div>
   );

@@ -89,6 +89,7 @@ export function HistoryFilterDrawer({
                 { value: "all", label: "All" },
                 { value: "income", label: "Income" },
                 { value: "expense", label: "Expense" },
+                { value: "transfer", label: "Transfer" },
               ]}
               className="w-full"
             />

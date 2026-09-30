@@ -144,7 +144,7 @@ export default function HistoryPage() {
     if (filters.type !== "all") {
       chips.push({
         key: "type",
-        label: filters.type === "income" ? "Income" : "Expense",
+        label: tCommon(filters.type),
         onClear: () => setFilters((f) => ({ ...f, type: "all" })),
       });
     }

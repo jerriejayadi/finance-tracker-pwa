@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Repeat, Check } from "lucide-react";
+import { Repeat, Check, ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday, type Locale } from "date-fns";
 import { useTranslations, useLocale } from "next-intl";
@@ -82,6 +82,7 @@ function HistoryRow({
   const dateLocale = getDateLocale(locale);
   const longPress = useLongPress(onLongPress);
   const isIncome = tx.type === "Income";
+  const isTransfer = tx.type === "Transfer";
 
   return (
     <div
@@ -111,13 +112,17 @@ function HistoryRow({
 
       {/* Icon avatar */}
       <div className="bg-bg-2 border-line flex h-10 w-10 items-center justify-center rounded-xl border text-[17px]">
-        {tx.category_icon || "💰"}
+        {isTransfer ? (
+          <ArrowLeftRight size={16} strokeWidth={1.75} className="text-fg-1" />
+        ) : (
+          tx.category_icon || "💰"
+        )}
       </div>
 
       {/* Body */}
       <div className="min-w-0">
         <div className="text-fg-0 flex items-center gap-1.5 truncate text-[14px] font-medium">
-          {tx.merchant || tx.category_name || tx.category}
+          {isTransfer ? tCommon("transfer") : tx.merchant || tx.category_name || tx.category}
           {tx.recurring_transaction_id && (
             <Repeat
               size={10}
@@ -129,9 +134,17 @@ function HistoryRow({
         <div className="text-fg-2 mt-0.5 flex items-center gap-1.5 truncate font-mono text-[11px]">
           <span>{fmtDateRow(tx.date, dateLocale, tCommon)}</span>
           <span className="opacity-50">&middot;</span>
-          <span>{tx.category_name || tx.category}</span>
-          <span className="opacity-50">&middot;</span>
-          <span className="text-fg-1">{tx.account_name || ""}</span>
+          {isTransfer ? (
+            <span className="text-fg-1">
+              {tx.account_name} &rarr; {tx.to_account_name}
+            </span>
+          ) : (
+            <>
+              <span>{tx.category_name || tx.category}</span>
+              <span className="opacity-50">&middot;</span>
+              <span className="text-fg-1">{tx.account_name || ""}</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -143,7 +156,7 @@ function HistoryRow({
             isIncome ? "text-pos" : "text-fg-0",
           )}
         >
-          {isIncome ? "+" : "\u2212"} Rp{" "}
+          {isTransfer ? "" : isIncome ? "+ " : "\u2212 "}Rp{" "}
           {Number(tx.amount).toLocaleString("id-ID")}
         </div>
       </div>

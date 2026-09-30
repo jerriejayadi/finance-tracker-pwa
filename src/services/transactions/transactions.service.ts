@@ -4,6 +4,8 @@ export type Transaction = {
   id: string;
   user_id: string;
   account_id: string;
+  /** Destination account; set only when type is "Transfer" */
+  to_account_id: string | null;
   category_id: string | null;
   recurring_transaction_id: string | null;
   type: "Income" | "Expense" | "Transfer";
@@ -16,12 +18,14 @@ export type Transaction = {
   created_at: string;
   // Joined fields
   account_name?: string;
+  to_account_name?: string;
   category_name?: string;
   category_icon?: string;
 };
 
 export type CreateTransactionPayload = {
   account_id: string;
+  to_account_id?: string | null;
   category_id?: string;
   type: "Income" | "Expense" | "Transfer";
   category: string;
@@ -35,18 +39,19 @@ export type CreateTransactionPayload = {
 export type UpdateTransactionPayload = {
   id: string;
   account_id: string;
+  to_account_id?: string | null;
   category_id?: string | null;
   type: "Income" | "Expense" | "Transfer";
   category: string;
   amount: number;
   currency?: string;
   date: string;
-  merchant?: string;
+  merchant?: string | null;
   note?: string;
 };
 
 export type TransactionFilters = {
-  type?: "income" | "expense";
+  type?: "income" | "expense" | "transfer";
   categoryIds?: string[];
   /** Legacy rows with no category_id, matched by the free-text category name */
   legacyCategory?: string;
@@ -64,20 +69,27 @@ export type TransactionSummary = {
   totalExpense: number;
 };
 
+const TX_TYPE_DB = {
+  income: "Income",
+  expense: "Expense",
+  transfer: "Transfer",
+} as const;
+
 export const transactionsService = {
   getTransactions: async (filters: TransactionFilters = {}): Promise<Transaction[]> => {
     let query = supabase
       .from("transactions")
       .select(`
         *,
-        accounts!inner(name),
+        accounts!transactions_account_id_fkey!inner(name),
+        to_account:accounts!transactions_to_account_id_fkey(name),
         categories(name, icon)
       `)
       .order("date", { ascending: false })
       .order("created_at", { ascending: false });
 
     if (filters.type) {
-      query = query.eq("type", filters.type === "income" ? "Income" : "Expense");
+      query = query.eq("type", TX_TYPE_DB[filters.type]);
     }
     if (filters.categoryIds && filters.categoryIds.length > 0) {
       query = query.in("category_id", filters.categoryIds);
@@ -86,7 +98,9 @@ export const transactionsService = {
       query = query.is("category_id", null).eq("category", filters.legacyCategory);
     }
     if (filters.accountIds && filters.accountIds.length > 0) {
-      query = query.in("account_id", filters.accountIds);
+      // A transfer matches on either side
+      const ids = filters.accountIds.join(",");
+      query = query.or(`account_id.in.(${ids}),to_account_id.in.(${ids})`);
     }
     if (filters.amtMin) {
       query = query.gte("amount", filters.amtMin);
@@ -116,11 +130,13 @@ export const transactionsService = {
     return (data ?? []).map((row) => {
       const r = row as Record<string, unknown>;
       const accounts = r.accounts as { name: string } | null;
+      const toAccount = r.to_account as { name: string } | null;
       const categories = r.categories as { name: string; icon: string } | null;
-      const { accounts: _a, categories: _c, ...rest } = r;
+      const { accounts: _a, to_account: _t, categories: _c, ...rest } = r;
       return {
         ...rest,
         account_name: accounts?.name ?? "",
+        to_account_name: toAccount?.name ?? "",
         category_name: categories?.name ?? r.category,
         category_icon: categories?.icon ?? "",
       } as Transaction;
@@ -166,7 +182,8 @@ export const transactionsService = {
     const { id, ...fields } = payload;
     const { data, error } = await supabase
       .from("transactions")
-      .update(fields)
+      // Non-transfers must send null explicitly, or a former transfer keeps its destination
+      .update({ ...fields, to_account_id: fields.to_account_id ?? null })
       .eq("id", id)
       .select()
       .single();

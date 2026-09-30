@@ -41,6 +41,17 @@ import { useGetProfile } from "@/services/profile/profile.hooks";
 import { monthKey } from "@/components/budget/budget-constants";
 import type { AccountBalance } from "@/services/accounts/accounts.service";
 import type { Transaction } from "@/components/history/history-constants";
+import { toast } from "sonner";
+import { TransferAccounts } from "@/components/transactions/transfer-accounts";
+import {
+  EMPTY_TRANSFER,
+  defaultTransferPair,
+  isValidTransfer,
+  saveErrorKey,
+  setTransferSide,
+  swapTransfer,
+  type TransferPair,
+} from "@/services/transactions/transfer.utils";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -339,19 +350,33 @@ export function EditTransactionDrawer({
   }, [date]);
   const [acctKey, setAcctKey] = React.useState("");
   const [acctLabel, setAcctLabel] = React.useState("");
+  const [transfer, setTransfer] = React.useState<TransferPair>(EMPTY_TRANSFER);
+  // Which field the account picker is filling
+  const [pickerSide, setPickerSide] = React.useState<"account" | "from" | "to">("account");
+  const tTx = useTranslations("transaction");
 
   // Hooks
   const { data: profile } = useGetProfile();
   const { data: categories = [] } = useGetCategories();
   const { data: categoryUsage } = useGetCategoryUsage();
-  const { data: accountBalances = [] } = useGetAccountBalances();
+  const {
+    data: accountBalances = [],
+    isPending: accountsPending,
+    isError: accountsError,
+    refetch: refetchAccounts,
+  } = useGetAccountBalances();
   const { data: budgets = [] } = useGetBudgets({
     monthYear: monthKey(date.getFullYear(), date.getMonth()),
   });
   const updateTransaction = useUpdateTransaction({
     mutationConfig: {
       onSuccess: () => {
+        toast.success(tTx("transactionUpdated"));
         onOpenChange(false);
+      },
+      onError: (err) => {
+        const key = saveErrorKey(err);
+        toast.error(key === "saveFailed" ? tTx("saveFailed", { message: err.message }) : tTx(key));
       },
     },
   });
@@ -366,19 +391,35 @@ export function EditTransactionDrawer({
     [categories, type, budgetedIds, categoryUsage],
   );
 
-  // Switching type re-picks the category if the current one doesn't belong to the new type.
-  // Done here (not in an effect) so opening a transaction never silently changes its category.
-  const changeType = (next: TxType) => {
-    setType(next);
-    const options = categoriesForTxType(categories, next, budgetedIds, categoryUsage);
-    if (!options.some((c) => c.id === cat)) setCat(options[0]?.id ?? "");
-  };
-
   // Active accounts
   const activeAccounts = React.useMemo(
     () => accountBalances.filter((a) => a.is_active),
     [accountBalances],
   );
+
+  // All balances (not just active) so an old transfer to an archived account still shows its name
+  const accountName = (id: string) =>
+    accountBalances.find((a) => a.account_id === id)?.name ?? tTx("selectAccount");
+
+  // Switching type re-picks the category if the current one doesn't belong to the new type.
+  // Done here (not in an effect) so opening a transaction never silently changes its category.
+  const changeType = (next: TxType) => {
+    setType(next);
+    if (next === "transfer") {
+      if (!transfer.from) {
+        setTransfer(defaultTransferPair(activeAccounts.map((a) => a.account_id), acctKey));
+      }
+      return;
+    }
+    // Leaving transfer: From becomes the account
+    if (type === "transfer" && transfer.from) {
+      setAcctKey(transfer.from);
+      setAcctLabel(accountName(transfer.from));
+    }
+    const options = categoriesForTxType(categories, next, budgetedIds, categoryUsage);
+    if (!options.some((c) => c.id === cat)) setCat(options[0]?.id ?? "");
+  };
+
 
   // Populate form when transaction changes
   React.useEffect(() => {
@@ -397,6 +438,11 @@ export function EditTransactionDrawer({
       setDate(new Date(transaction.date + "T00:00:00"));
       setAcctKey(transaction.account_id);
       setAcctLabel(transaction.account_name || "");
+      setTransfer(
+        transaction.type === "Transfer" && transaction.to_account_id
+          ? { from: transaction.account_id, to: transaction.to_account_id }
+          : EMPTY_TRANSFER,
+      );
       setView("main");
     }
   }, [open, transaction]);
@@ -450,21 +496,40 @@ export function EditTransactionDrawer({
 
   const segIdx = type === "expense" ? 0 : type === "income" ? 1 : 2;
 
+  const isTransfer = type === "transfer";
+  const canSave = isTransfer ? isValidTransfer(transfer, amount) : amount > 0 && !!acctKey;
+
   const handleSave = () => {
     if (!transaction) return;
-    const selectedCategory = categories.find((c) => c.id === cat);
-    updateTransaction.mutate({
+    const base = {
       id: transaction.id,
-      account_id: acctKey,
-      // "" = no category picked (e.g. imported as Uncategorized) — "" is not a valid uuid
-      category_id: cat || null,
-      type: type === "expense" ? "Expense" : type === "income" ? "Income" : "Transfer",
-      category: selectedCategory?.name ?? transaction.category,
-      amount: amount,
+      amount,
       currency: profile?.currency_preference ?? "IDR",
       date: format(date, "yyyy-MM-dd"),
-      merchant: note || undefined,
       note: note || undefined,
+    };
+    if (isTransfer) {
+      updateTransaction.mutate({
+        ...base,
+        account_id: transfer.from,
+        to_account_id: transfer.to,
+        category_id: null,
+        type: "Transfer",
+        category: "Transfer",
+        merchant: null,
+      });
+      return;
+    }
+    const selectedCategory = categories.find((c) => c.id === cat);
+    updateTransaction.mutate({
+      ...base,
+      account_id: acctKey,
+      to_account_id: null,
+      // "" = no category picked (e.g. imported as Uncategorized) — "" is not a valid uuid
+      category_id: cat || null,
+      type: type === "expense" ? "Expense" : "Income",
+      category: selectedCategory?.name ?? transaction.category,
+      merchant: note || undefined,
     });
   };
 
@@ -486,11 +551,15 @@ export function EditTransactionDrawer({
         {/* Account Picker */}
         {view === "account" && (
           <AccountPickerView
-            value={acctKey}
+            value={pickerSide === "account" ? acctKey : transfer[pickerSide]}
             accounts={activeAccounts}
             onSelect={(k, lbl) => {
-              setAcctKey(k);
-              setAcctLabel(lbl);
+              if (pickerSide === "account") {
+                setAcctKey(k);
+                setAcctLabel(lbl);
+              } else {
+                setTransfer((p) => setTransferSide(p, pickerSide, k));
+              }
             }}
             onBack={() => setView("main")}
           />
@@ -643,12 +712,14 @@ export function EditTransactionDrawer({
               </div>
 
               {/* Category grid */}
-              <CategoryQuickGrid
-                categories={displayCategories}
-                value={cat}
-                onChange={setCat}
-                onMore={() => setView("category")}
-              />
+              {!isTransfer && (
+                <CategoryQuickGrid
+                  categories={displayCategories}
+                  value={cat}
+                  onChange={setCat}
+                  onMore={() => setView("category")}
+                />
+              )}
 
               {/* Fields */}
               <div className="flex flex-col border border-line bg-bg-0 rounded-md overflow-hidden mb-4">
@@ -673,27 +744,76 @@ export function EditTransactionDrawer({
                     className="text-fg-2 flex-shrink-0"
                   />
                 </div>
-                <div
-                  className="flex items-center gap-3 px-4 py-3.5 border-b border-line-soft cursor-pointer hover:bg-bg-1 transition-colors"
-                  onClick={() => setView("account")}
-                >
-                  <div className="w-8 h-8 rounded-lg bg-bg-2 border border-line flex items-center justify-center text-fg-1 flex-shrink-0">
-                    <Wallet size={16} strokeWidth={1.75} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[11px] text-fg-2 uppercase tracking-[0.04em]">
-                      Account
+                {isTransfer ? (
+                  <TransferAccounts>
+                    {accountsError ? (
+                      <TransferAccounts.Notice
+                        action={
+                          <Button variant="secondary" size="sm" onClick={() => refetchAccounts()}>
+                            {tTx("retry")}
+                          </Button>
+                        }
+                      >
+                        {tTx("accountsLoadFailed")}
+                      </TransferAccounts.Notice>
+                    ) : !accountsPending && activeAccounts.length < 2 && !(transfer.from && transfer.to) ? (
+                      <TransferAccounts.Notice>{tTx("transferNeedsTwoAccounts")}</TransferAccounts.Notice>
+                    ) : (
+                      <>
+                        <TransferAccounts.Row
+                          label={tTx("from")}
+                          value={accountName(transfer.from)}
+                          loading={accountsPending}
+                          disabled={updateTransaction.isPending}
+                          onClick={() => {
+                            setPickerSide("from");
+                            setView("account");
+                          }}
+                        />
+                        <TransferAccounts.Swap
+                          label={tTx("swapAccounts")}
+                          disabled={!transfer.to || updateTransaction.isPending}
+                          onSwap={() => setTransfer(swapTransfer)}
+                        />
+                        <TransferAccounts.Row
+                          label={tTx("to")}
+                          value={accountName(transfer.to)}
+                          loading={accountsPending}
+                          disabled={updateTransaction.isPending}
+                          onClick={() => {
+                            setPickerSide("to");
+                            setView("account");
+                          }}
+                        />
+                      </>
+                    )}
+                  </TransferAccounts>
+                ) : (
+                  <div
+                    className="flex items-center gap-3 px-4 py-3.5 border-b border-line-soft cursor-pointer hover:bg-bg-1 transition-colors"
+                    onClick={() => {
+                      setPickerSide("account");
+                      setView("account");
+                    }}
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-bg-2 border border-line flex items-center justify-center text-fg-1 flex-shrink-0">
+                      <Wallet size={16} strokeWidth={1.75} />
                     </div>
-                    <div className="text-[14px] text-fg-0 font-medium mt-0.5">
-                      {acctLabel || "Select account"}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] text-fg-2 uppercase tracking-[0.04em]">
+                        Account
+                      </div>
+                      <div className="text-[14px] text-fg-0 font-medium mt-0.5">
+                        {acctLabel || "Select account"}
+                      </div>
                     </div>
+                    <ChevronRight
+                      size={14}
+                      strokeWidth={1.75}
+                      className="text-fg-2 flex-shrink-0"
+                    />
                   </div>
-                  <ChevronRight
-                    size={14}
-                    strokeWidth={1.75}
-                    className="text-fg-2 flex-shrink-0"
-                  />
-                </div>
+                )}
                 <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-bg-1 transition-colors">
                   <div className="w-8 h-8 rounded-lg bg-bg-2 border border-line flex items-center justify-center text-fg-1 flex-shrink-0">
                     <FileText size={16} strokeWidth={1.75} />
@@ -713,20 +833,22 @@ export function EditTransactionDrawer({
               </div>
 
               {/* Recurring toggle */}
-              <div
-                className="flex items-center justify-between px-4 py-3 bg-bg-0 border border-line rounded-sm mb-4 cursor-pointer"
-                onClick={() => setRecurring(!recurring)}
-              >
-                <div>
-                  <div className="text-[13px] text-fg-0 flex items-center gap-2">
-                    <Repeat size={14} strokeWidth={1.75} /> Make recurring
+              {!isTransfer && (
+                <div
+                  className="flex items-center justify-between px-4 py-3 bg-bg-0 border border-line rounded-sm mb-4 cursor-pointer"
+                  onClick={() => setRecurring(!recurring)}
+                >
+                  <div>
+                    <div className="text-[13px] text-fg-0 flex items-center gap-2">
+                      <Repeat size={14} strokeWidth={1.75} /> Make recurring
+                    </div>
+                    <div className="text-[11px] text-fg-2 mt-0.5">
+                      Repeats every month on the {date.getDate()}th
+                    </div>
                   </div>
-                  <div className="text-[11px] text-fg-2 mt-0.5">
-                    Repeats every month on the {date.getDate()}th
-                  </div>
+                  <Toggle checked={recurring} onCheckedChange={setRecurring} />
                 </div>
-                <Toggle checked={recurring} onCheckedChange={setRecurring} />
-              </div>
+              )}
             </div>
 
             {/* Actions */}
@@ -736,7 +858,7 @@ export function EditTransactionDrawer({
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={amount === 0 || !acctKey || updateTransaction.isPending}
+                disabled={!canSave || updateTransaction.isPending}
               >
                 {updateTransaction.isPending ? "Saving..." : "Save changes"}
               </Button>

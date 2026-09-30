@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Pencil, Tag, Repeat, Trash2 } from "lucide-react";
+import { Pencil, Tag, Repeat, Trash2, ArrowLeftRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import {
   Drawer,
@@ -24,7 +25,10 @@ export function TxDetailDrawer({
   onDelete,
   onEdit,
 }: TxDetailDrawerProps) {
+  const tCommon = useTranslations("common");
+  const tTx = useTranslations("transaction");
   if (!tx) return null;
+  const isTransfer = tx.type === "Transfer";
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -34,26 +38,34 @@ export function TxDetailDrawer({
           <div
             className={cn(
               "w-14 h-14 rounded-2xl flex items-center justify-center text-[24px] mb-1",
-              tx.type === "Income"
-                ? "bg-pos-soft text-pos"
-                : "bg-neg-soft text-neg"
+              isTransfer
+                ? "bg-bg-2 text-fg-1"
+                : tx.type === "Income"
+                  ? "bg-pos-soft text-pos"
+                  : "bg-neg-soft text-neg"
             )}
           >
-            {tx.category_icon || "💰"}
+            {isTransfer ? <ArrowLeftRight size={22} strokeWidth={1.75} /> : tx.category_icon || "💰"}
           </div>
           <div className="text-[17px] font-semibold text-fg-0">
-            {tx.merchant || tx.category_name || tx.category}
+            {isTransfer ? tCommon("transfer") : tx.merchant || tx.category_name || tx.category}
           </div>
           <div className="text-[12px] text-fg-2 font-mono">
-            {tx.category_name || tx.category} &middot; {tx.account_name || ""}
+            {isTransfer ? (
+              `${tx.account_name} \u2192 ${tx.to_account_name}`
+            ) : (
+              <>
+                {tx.category_name || tx.category} &middot; {tx.account_name || ""}
+              </>
+            )}
           </div>
           <div
             className={cn(
               "font-mono tabular-nums text-[28px] font-medium tracking-tight mt-2",
-              tx.type === "Income" ? "text-pos" : "text-neg"
+              isTransfer ? "text-fg-0" : tx.type === "Income" ? "text-pos" : "text-neg"
             )}
           >
-            {tx.type === "Income" ? "+ " : "\u2212 "}Rp{" "}
+            {isTransfer ? "" : tx.type === "Income" ? "+ " : "\u2212 "}Rp{" "}
             {Number(tx.amount).toLocaleString("id-ID")}
           </div>
           {tx.recurring_transaction_id && (
@@ -66,19 +78,29 @@ export function TxDetailDrawer({
         {/* Details table */}
         <div className="mx-5 rounded-md bg-bg-0 border border-line overflow-hidden mb-4">
           <DetailRow label="Date" value={tx.date} />
-          <DetailRow label="Account" value={tx.account_name || ""} />
-          <DetailRow
-            label="Category"
-            value={
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-bg-2 border border-line text-[12px] text-fg-0">
-                {tx.category_icon} {tx.category_name || tx.category}
-              </span>
-            }
-          />
+          {isTransfer ? (
+            <>
+              <DetailRow label={tTx("from")} value={tx.account_name || ""} />
+              <DetailRow label={tTx("to")} value={tx.to_account_name || ""} />
+              {tx.note && <DetailRow label={tTx("notes")} value={tx.note} />}
+            </>
+          ) : (
+            <>
+              <DetailRow label="Account" value={tx.account_name || ""} />
+              <DetailRow
+                label="Category"
+                value={
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-bg-2 border border-line text-[12px] text-fg-0">
+                    {tx.category_icon} {tx.category_name || tx.category}
+                  </span>
+                }
+              />
+            </>
+          )}
           <DetailRow
             label="Type"
             value={tx.type}
-            valueClass={tx.type === "Income" ? "text-pos" : "text-neg"}
+            valueClass={isTransfer ? "text-fg-0" : tx.type === "Income" ? "text-pos" : "text-neg"}
             last
           />
         </div>
@@ -93,7 +115,7 @@ export function TxDetailDrawer({
               onOpenChange(false);
             }}
           />
-          <ActionButton icon={<Tag size={14} />} label="Recategorize" />
+          {!isTransfer && <ActionButton icon={<Tag size={14} />} label="Recategorize" />}
           <ActionButton icon={<Repeat size={14} />} label="Duplicate" />
           <ActionButton
             icon={<Trash2 size={14} />}

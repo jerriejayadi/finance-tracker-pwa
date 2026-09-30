@@ -38,7 +38,15 @@
     "month": "Month",
     "year": "Year",
     "bulkImport": "Bulk import transactions",
-    "orBringHistory": "Or bring your history"
+    "orBringHistory": "Or bring your history",
+    "accounts": "Accounts",
+    "add": "Add",
+    "addAccount": "Add account",
+    "done": "Done",
+    "deleting": "Deleting...",
+    "deleteAccount": "Delete account",
+    "deleteAccountTitle": "Delete {name}?",
+    "deleteAccountDescription": "Every transaction in this account will be deleted too. This can't be undone."
   },
   "profile": {
     "title": "Profile",
@@ -164,7 +172,18 @@
     "selectCategory": "Select category",
     "searchCategories": "Search categories",
     "noCategoriesFound": "No categories found",
-    "moreCategories": "More"
+    "moreCategories": "More",
+    "from": "From",
+    "to": "To",
+    "swapAccounts": "Swap accounts",
+    "transferNeedsTwoAccounts": "Add at least 2 active accounts to make a transfer.",
+    "transferSameAccount": "From and To must be different accounts.",
+    "accountsLoadFailed": "Couldn't load your accounts.",
+    "retry": "Retry",
+    "saveFailed": "Couldn't save: {message}",
+    "transferSaved": "Transfer saved",
+    "transactionSaved": "Transaction saved",
+    "transactionUpdated": "Transaction updated"
   },
   "language": {
     "en": "English",

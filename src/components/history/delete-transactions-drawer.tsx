@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, ArrowLeftRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -56,18 +56,32 @@ export function DeleteTransactionsDrawer({
         <ConfirmDrawer.Body>
           <div className="flex items-center gap-3 p-3 rounded-md bg-bg-0 border border-line text-left">
             <div className="w-9 h-9 rounded-[10px] bg-bg-2 border border-line flex items-center justify-center text-[16px] flex-shrink-0">
-              {single.category_icon || "💰"}
+              {single.type === "Transfer" ? (
+                <ArrowLeftRight size={15} strokeWidth={1.75} className="text-fg-1" />
+              ) : (
+                single.category_icon || "💰"
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[14px] font-medium text-fg-0 truncate">
-                {single.merchant || single.category_name || single.category}
+                {single.type === "Transfer"
+                  ? tCommon("transfer")
+                  : single.merchant || single.category_name || single.category}
               </div>
-              <div className="font-mono text-[11px] text-fg-2 mt-0.5">{single.date}</div>
+              <div className="font-mono text-[11px] text-fg-2 mt-0.5 truncate">
+                {single.date}
+                {single.type === "Transfer" &&
+                  ` · ${single.account_name} \u2192 ${single.to_account_name}`}
+              </div>
             </div>
             <div
               className={cn(
                 "font-mono tabular-nums text-[13px] font-medium",
-                single.type === "Income" ? "text-pos" : "text-neg",
+                single.type === "Transfer"
+                  ? "text-fg-0"
+                  : single.type === "Income"
+                    ? "text-pos"
+                    : "text-neg",
               )}
             >
               {fmtIDR(Number(single.amount))}

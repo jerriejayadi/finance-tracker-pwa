@@ -36,6 +36,7 @@ import type { Transaction } from "@/services/transactions/transactions.service";
 import { DashboardOnboarding } from "@/components/home/dashboard-onboarding";
 import { BudgetNudge } from "@/components/home/budget-nudge";
 import { BulkImportButton } from "@/components/home/bulk-import-button";
+import { AccountsStrip } from "@/components/home/accounts-strip";
 import { DashboardSkeleton } from "@/components/home/dashboard-skeleton";
 import { CurrencyPickerDrawer } from "@/components/profile/currency-picker-drawer";
 import { monthKey } from "@/components/budget/budget-constants";
@@ -160,7 +161,9 @@ export default function DashboardPage() {
       dayLabel: formatDayLabel(date, tCommon, dateLocale),
       total: items.reduce(
         (s, t) =>
-          s + (t.type === "Income" ? Number(t.amount) : -Number(t.amount)),
+          t.type === "Transfer"
+            ? s
+            : s + (t.type === "Income" ? Number(t.amount) : -Number(t.amount)),
         0,
       ),
       items,
@@ -172,6 +175,7 @@ export default function DashboardPage() {
     const all = [{ id: "All", count: recentTx.length }];
     const catCounts = new Map<string, number>();
     for (const tx of recentTx) {
+      if (tx.type === "Transfer") continue; // no real category
       const name = tx.category_name || tx.category;
       catCounts.set(name, (catCounts.get(name) || 0) + 1);
     }
@@ -269,6 +273,9 @@ export default function DashboardPage() {
         </div>
       </section>
 
+      {/* Accounts */}
+      <AccountsStrip />
+
       {/* In/Out strip */}
       <section className="bg-bg-1 border-line mx-4 grid grid-cols-[1fr_1px_1fr] items-center rounded-md border py-3.5">
         <div className="flex items-center gap-3 px-3.5">
@@ -350,19 +357,32 @@ export default function DashboardPage() {
                 {fmtIDR(Math.abs(g.total))}
               </span>
             </div>
-            {g.items.map((tx) => (
-              <TransactionItem
-                key={tx.id}
-                title={tx.merchant || tx.category_name || tx.category}
-                category={tx.category_name || tx.category}
-                amount={Number(tx.amount)}
-                time={tx.date}
-                type={tx.type === "Income" ? "income" : "expense"}
-                icon={tx.category_icon || ""}
-                recurring={!!tx.recurring_transaction_id}
-                onClick={() => setEditTx(tx)}
-              />
-            ))}
+            {g.items.map((tx) => {
+              const isTransfer = tx.type === "Transfer";
+              return (
+                <TransactionItem
+                  key={tx.id}
+                  title={isTransfer ? tCommon("transfer") : tx.merchant || tx.category_name || tx.category}
+                  category={
+                    isTransfer
+                      ? `${tx.account_name} \u2192 ${tx.to_account_name}`
+                      : tx.category_name || tx.category
+                  }
+                  amount={Number(tx.amount)}
+                  time={tx.date}
+                  type={isTransfer ? "transfer" : tx.type === "Income" ? "income" : "expense"}
+                  icon={
+                    isTransfer ? (
+                      <ArrowLeftRight size={16} strokeWidth={1.75} />
+                    ) : (
+                      tx.category_icon || ""
+                    )
+                  }
+                  recurring={!!tx.recurring_transaction_id}
+                  onClick={() => setEditTx(tx)}
+                />
+              );
+            })}
           </React.Fragment>
         ))}
       </div>
