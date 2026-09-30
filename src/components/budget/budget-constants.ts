@@ -63,10 +63,14 @@ export function budgetPct(spent: number, budget: number): number {
   return Math.min(999, (spent / budget) * 100);
 }
 
-/** Progress bar color: brand, warn from 85%, neg from 100%. */
-export function budgetFillColor(spent: number, budget: number): string {
-  const pct = budgetPct(spent, budget);
+/** Progress color for a % used: green (pos), yellow (brand) from 85%, red (neg) from 100%. */
+export function budgetPctColor(pct: number): string {
   if (pct >= 100) return "var(--neg)";
-  if (pct >= 85) return "var(--warn)";
-  return "var(--brand)";
+  if (pct >= 85) return "var(--brand)";
+  return "var(--pos)";
+}
+
+/** Progress bar color for spent vs budget — see budgetPctColor. */
+export function budgetFillColor(spent: number, budget: number): string {
+  return budgetPctColor(budgetPct(spent, budget));
 }

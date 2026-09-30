@@ -5,12 +5,12 @@ export function fmtIDR(n: number): string {
   return sign + "Rp " + v.toLocaleString("id-ID");
 }
 
-/** Compact IDR: 1.500.000 -> 1,5jt; 250.000 -> 250rb */
+/** Compact IDR: 1.500.000 -> Rp1,5jt; 250.000 -> Rp250rb; 30 -> Rp30 */
 export function fmtIDRShort(n: number): string {
   const v = Math.abs(n);
   if (v >= 1_000_000)
     return (
-      "Rp " +
+      "Rp" +
       (v / 1_000_000)
         .toFixed(1)
         .replace(".", ",")
@@ -18,5 +18,5 @@ export function fmtIDRShort(n: number): string {
       "jt"
     );
   if (v >= 1_000) return "Rp" + Math.round(v / 1_000) + "rb";
-  return "Rp " + v;
+  return "Rp" + v;
 }

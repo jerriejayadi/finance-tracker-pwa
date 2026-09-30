@@ -3,7 +3,7 @@
 import { fmtIDR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Calendar } from "lucide-react";
-import { MONTH_NAMES } from "./budget-constants";
+import { MONTH_NAMES, budgetPctColor } from "./budget-constants";
 import type { BudgetCategory } from "./budget-types";
 
 function pctOf(spent: number, budget: number): number {
@@ -52,13 +52,7 @@ export function BudgetHero({ categories, year, month }: BudgetHeroProps) {
           cx="80"
           cy="80"
           r={R}
-          stroke={
-            overall >= 100
-              ? "var(--neg)"
-              : overall >= 85
-                ? "var(--warn)"
-                : "var(--brand)"
-          }
+          stroke={budgetPctColor(overall)}
           strokeWidth="10"
           fill="none"
           strokeLinecap="round"
