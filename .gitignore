@@ -58,3 +58,4 @@ certificates
 supabase/backup.sql
 
 .playwright-mcp
+supabase/seed.sql
