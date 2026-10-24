@@ -7,6 +7,7 @@ import { format, isToday, isYesterday, type Locale } from "date-fns";
 import { useTranslations, useLocale } from "next-intl";
 import { getDateLocale } from "@/lib/date-locale";
 import { useLongPress } from "@/hooks/use-long-press";
+import { fmtIDR } from "@/lib/format";
 import type { Transaction } from "./history-constants";
 
 function fmtDateRow(
@@ -20,6 +21,35 @@ function fmtDateRow(
   return format(d, "d MMM", { locale });
 }
 
+function fmtDayHeader(
+  iso: string,
+  locale: Locale,
+  tCommon: (key: string) => string,
+): string {
+  const d = new Date(iso + "T00:00:00");
+  const label = format(d, "MMM d", { locale });
+  if (isToday(d)) return `${tCommon("today")} \u00B7 ${label}`;
+  if (isYesterday(d)) return `${tCommon("yesterday")} \u00B7 ${label}`;
+  return label;
+}
+
+/** Groups consecutive same-date transactions, preserving the incoming order. */
+function groupByDay(transactions: Transaction[]) {
+  const groups: { day: string; total: number; items: Transaction[] }[] = [];
+  for (const tx of transactions) {
+    let g = groups[groups.length - 1];
+    if (!g || g.day !== tx.date) {
+      g = { day: tx.date, total: 0, items: [] };
+      groups.push(g);
+    }
+    g.items.push(tx);
+    if (tx.type !== "Transfer") {
+      g.total += tx.type === "Income" ? Number(tx.amount) : -Number(tx.amount);
+    }
+  }
+  return groups;
+}
+
 interface HistoryListProps {
   transactions: Transaction[];
   selectMode: boolean;
@@ -29,6 +59,8 @@ interface HistoryListProps {
   /** Hold-press on a row; the page uses it to enter select mode. */
   onLongPressRow: (tx: Transaction) => void;
   rangeLabel: string;
+  /** Show day headers with daily net totals (only meaningful for date sorts). */
+  groupByDate?: boolean;
 }
 
 export function HistoryList({
@@ -39,22 +71,42 @@ export function HistoryList({
   onTapRow,
   onLongPressRow,
   rangeLabel,
+  groupByDate = false,
 }: HistoryListProps) {
+  const tCommon = useTranslations("common");
+  const dateLocale = getDateLocale(useLocale());
+
+  const renderRow = (tx: Transaction) => (
+    <HistoryRow
+      key={tx.id}
+      tx={tx}
+      showDate={!groupByDate}
+      selectMode={selectMode}
+      selected={selected.has(tx.id)}
+      onTap={() => {
+        if (selectMode) onToggleSelect(tx.id);
+        else onTapRow(tx);
+      }}
+      onLongPress={() => onLongPressRow(tx)}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-px px-3">
-      {transactions.map((tx) => (
-        <HistoryRow
-          key={tx.id}
-          tx={tx}
-          selectMode={selectMode}
-          selected={selected.has(tx.id)}
-          onTap={() => {
-            if (selectMode) onToggleSelect(tx.id);
-            else onTapRow(tx);
-          }}
-          onLongPress={() => onLongPressRow(tx)}
-        />
-      ))}
+      {groupByDate
+        ? groupByDay(transactions).map((g) => (
+            <React.Fragment key={g.day}>
+              <div className="text-fg-2 flex items-baseline justify-between px-3 pt-3.5 pb-1.5 text-[11px] tracking-[0.04em] uppercase">
+                <span>{fmtDayHeader(g.day, dateLocale, tCommon)}</span>
+                <span className="text-fg-1 font-mono tracking-normal normal-case">
+                  {g.total >= 0 ? "+ " : "\u2212 "}
+                  {fmtIDR(Math.abs(g.total))}
+                </span>
+              </div>
+              {g.items.map(renderRow)}
+            </React.Fragment>
+          ))
+        : transactions.map(renderRow)}
 
       {/* End cap */}
       <div className="text-fg-2 flex justify-center py-4 font-mono text-[11px] tracking-[0.04em]">
@@ -66,12 +118,14 @@ export function HistoryList({
 
 function HistoryRow({
   tx,
+  showDate,
   selectMode,
   selected: sel,
   onTap,
   onLongPress,
 }: {
   tx: Transaction;
+  showDate: boolean;
   selectMode: boolean;
   selected: boolean;
   onTap: () => void;
@@ -132,8 +186,12 @@ function HistoryRow({
           )}
         </div>
         <div className="text-fg-2 mt-0.5 flex items-center gap-1.5 truncate font-mono text-[11px]">
-          <span>{fmtDateRow(tx.date, dateLocale, tCommon)}</span>
-          <span className="opacity-50">&middot;</span>
+          {showDate && (
+            <>
+              <span>{fmtDateRow(tx.date, dateLocale, tCommon)}</span>
+              <span className="opacity-50">&middot;</span>
+            </>
+          )}
           {isTransfer ? (
             <span className="text-fg-1">
               {tx.account_name} &rarr; {tx.to_account_name}

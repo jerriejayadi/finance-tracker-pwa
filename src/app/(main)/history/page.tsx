@@ -390,6 +390,7 @@ export default function HistoryPage() {
             }
           }}
           rangeLabel={rangeLabel}
+          groupByDate={sort === "newest" || sort === "oldest"}
         />
       ) : null}
 
