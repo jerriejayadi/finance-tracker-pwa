@@ -9,8 +9,10 @@ import {
   Check,
   Tag,
   Trash2,
+  Download,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { format } from "date-fns";
 import { fmtIDRShort } from "@/lib/format";
 import { HistorySummary } from "@/components/history/history-summary";
 import { HistoryList } from "@/components/history/history-list";
@@ -20,11 +22,12 @@ import {
 } from "@/components/history/history-empty-states";
 import { HistoryFilterDrawer } from "@/components/history/history-filter-drawer";
 import { TxDetailDrawer } from "@/components/history/tx-detail-drawer";
+import { ExportCsvDrawer } from "@/components/history/export-csv-drawer";
 import {
-  DATE_RANGES,
   DEFAULT_FILTERS,
   type Filters,
   type Transaction,
+  getRangeLabel,
 } from "@/components/history/history-constants";
 import { useAddTransaction } from "../layout";
 import { useGetTransactions } from "@/services/transactions/transactions.hooks";
@@ -33,6 +36,9 @@ import { useGetAccounts } from "@/services/accounts/accounts.hooks";
 import { EditTransactionDrawer } from "@/components/transactions/edit-transaction-drawer";
 import { DeleteTransactionsDrawer } from "@/components/history/delete-transactions-drawer";
 import { cn } from "@/lib/utils";
+
+const fmtChipDate = (iso: string) =>
+  format(new Date(iso + "T00:00:00"), "d MMM");
 
 type SortOption = "newest" | "oldest" | "highest" | "lowest";
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
@@ -49,6 +55,7 @@ export default function HistoryPage() {
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [searchQ, setSearchQ] = React.useState("");
   const [filterOpen, setFilterOpen] = React.useState(false);
+  const [exportOpen, setExportOpen] = React.useState(false);
   const [detailTx, setDetailTx] = React.useState<Transaction | null>(null);
   const [editTx, setEditTx] = React.useState<Transaction | null>(null);
   // Kept after close so the drawer content doesn't vanish mid-animation
@@ -86,11 +93,19 @@ export default function HistoryPage() {
         dateTo = lastEnd.toISOString().split("T")[0];
         break;
       }
+      case "custom":
+        if (filters.customFrom) {
+          dateFrom = filters.customFrom;
+          dateTo = filters.customTo ?? filters.customFrom;
+          break;
+        }
+        dateFrom = new Date(today.getTime() - 30 * 86400000).toISOString().split("T")[0];
+        break;
       default:
         dateFrom = new Date(today.getTime() - 30 * 86400000).toISOString().split("T")[0];
     }
     return { dateFrom, dateTo };
-  }, [filters.range]);
+  }, [filters.range, filters.customFrom, filters.customTo]);
 
   const { data: transactions = [], isLoading } = useGetTransactions({
     filters: {
@@ -134,11 +149,16 @@ export default function HistoryPage() {
   const activeChips = React.useMemo(() => {
     const chips: { key: string; label: string; onClear: () => void }[] = [];
     if (filters.range !== "30d") {
-      const r = DATE_RANGES.find((x) => x.id === filters.range);
       chips.push({
         key: "range",
-        label: r?.label || filters.range,
-        onClear: () => setFilters((f) => ({ ...f, range: "30d" })),
+        label: getRangeLabel(filters, fmtChipDate),
+        onClear: () =>
+          setFilters((f) => ({
+            ...f,
+            range: "30d",
+            customFrom: undefined,
+            customTo: undefined,
+          })),
       });
     }
     if (filters.type !== "all") {
@@ -177,8 +197,7 @@ export default function HistoryPage() {
     return chips;
   }, [filters]);
 
-  const rangeLabel =
-    DATE_RANGES.find((r) => r.id === filters.range)?.label || "Last 30 days";
+  const rangeLabel = getRangeLabel(filters, fmtChipDate);
   const isEmpty = !isLoading && transactions.length === 0 && !searchQ && filters.type === "all" && filters.cats.length === 0;
   const isNoResults = !isLoading && transactions.length === 0 && !isEmpty;
 
@@ -239,6 +258,14 @@ export default function HistoryPage() {
               title="Search"
             >
               <Search size={14} strokeWidth={1.75} />
+            </button>
+            <button
+              onClick={() => setExportOpen(true)}
+              disabled={transactions.length === 0}
+              className="w-8 h-8 rounded-full bg-bg-1 border border-line flex items-center justify-center text-fg-1 cursor-pointer hover:bg-bg-2 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+              title="Export CSV"
+            >
+              <Download size={14} strokeWidth={1.75} />
             </button>
             <button
               onClick={() => setSelectMode(true)}
@@ -412,6 +439,14 @@ export default function HistoryPage() {
       )}
 
       {/* Drawers */}
+      <ExportCsvDrawer
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        transactions={sortedTransactions}
+        rangeLabel={rangeLabel}
+        dateFrom={dateRange.dateFrom}
+        dateTo={dateRange.dateTo}
+      />
       <HistoryFilterDrawer
         open={filterOpen}
         onOpenChange={setFilterOpen}

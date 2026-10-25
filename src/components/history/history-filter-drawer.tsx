@@ -1,7 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { format } from "date-fns";
+import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Drawer,
   DrawerContent,
@@ -37,6 +40,8 @@ export function HistoryFilterDrawer({
   React.useEffect(() => {
     if (open) setDraft(filters);
   }, [open, filters]);
+
+  const customIncomplete = draft.range === "custom" && !draft.customFrom;
 
   const toggleArray = (key: "cats" | "accts", val: string) => {
     const arr = draft[key];
@@ -78,6 +83,15 @@ export function HistoryFilterDrawer({
                 </button>
               ))}
             </div>
+            {draft.range === "custom" && (
+              <CustomRangePicker
+                from={draft.customFrom}
+                to={draft.customTo}
+                onChange={(customFrom, customTo) =>
+                  setDraft({ ...draft, customFrom, customTo })
+                }
+              />
+            )}
           </Section>
 
           {/* Type */}
@@ -143,7 +157,7 @@ export function HistoryFilterDrawer({
 
           {/* Amount range */}
           <Section label="Amount range (Rp)">
-            <div className="grid grid-cols-[1fr_12px_1fr] gap-2 items-center">
+            <div className="grid grid-cols-[minmax(0,1fr)_12px_minmax(0,1fr)] gap-2 items-center">
               <div className="flex items-center gap-2 h-10 px-3 rounded-sm bg-bg-0 border border-line focus-within:border-brand">
                 <span className="text-[10px] text-fg-2 uppercase tracking-[0.06em]">
                   Min
@@ -192,17 +206,91 @@ export function HistoryFilterDrawer({
             Cancel
           </button>
           <button
+            disabled={customIncomplete}
             onClick={() => {
               onApply(draft);
               onOpenChange(false);
             }}
-            className="flex-1 h-11 rounded-sm bg-brand text-brand-ink text-[14px] font-medium cursor-pointer hover:bg-brand-hi transition-colors"
+            className="flex-1 h-11 rounded-sm bg-brand text-brand-ink text-[14px] font-medium cursor-pointer hover:bg-brand-hi transition-colors disabled:opacity-50 disabled:pointer-events-none"
           >
             Apply filters
           </button>
         </div>
       </DrawerContent>
     </Drawer>
+  );
+}
+
+const toISODate = (d: Date) => format(d, "yyyy-MM-dd");
+const fromISODate = (iso: string) => new Date(iso + "T00:00:00");
+
+function CustomRangePicker({
+  from,
+  to,
+  onChange,
+}: {
+  from?: string;
+  to?: string;
+  onChange: (from?: string, to?: string) => void;
+}) {
+  const today = React.useMemo(() => new Date(), []);
+  const selected: DateRange | undefined = from
+    ? { from: fromISODate(from), to: to ? fromISODate(to) : undefined }
+    : undefined;
+
+  return (
+    <div className="mt-2 rounded-md border border-line bg-bg-0 p-2">
+      <div className="grid grid-cols-2 gap-2 px-1 pb-1">
+        <RangeEnd label="From" value={selected?.from} />
+        <RangeEnd label="To" value={selected?.to ?? selected?.from} />
+      </div>
+      <Calendar
+        mode="range"
+        selected={selected}
+        onSelect={(r) =>
+          onChange(
+            r?.from ? toISODate(r.from) : undefined,
+            r?.to ? toISODate(r.to) : undefined,
+          )
+        }
+        defaultMonth={selected?.from}
+        toDate={today}
+        disabled={{ after: today }}
+        className="w-full"
+        classNames={{
+          months: "flex flex-col w-full space-y-4",
+          month: "space-y-4 w-full",
+          head_row: "flex w-full",
+          head_cell:
+            "text-fg-2 rounded-md flex-1 font-normal text-[0.8rem] text-center",
+          row: "flex w-full mt-2",
+          cell: "flex-1 max-h-9 aspect-square text-center text-sm p-0 relative [&:has([aria-selected])]:bg-brand-soft first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md [&:has(.day-range-start)]:rounded-l-md [&:has(.day-range-end)]:rounded-r-md focus-within:relative focus-within:z-20",
+          day: "inline-flex items-center justify-center font-normal transition-colors cursor-pointer bg-transparent text-fg-0 rounded-lg hover:bg-bg-1 h-full w-full p-0 aria-selected:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+          day_range_start: "day-range-start",
+          day_range_end: "day-range-end",
+          day_range_middle:
+            "bg-transparent! text-brand! rounded-none hover:bg-transparent!",
+        }}
+      />
+    </div>
+  );
+}
+
+function RangeEnd({ label, value }: { label: string; value?: Date }) {
+  return (
+    <div className="rounded-sm bg-bg-1 px-3 py-2">
+      <div className="text-[10px] uppercase tracking-[0.06em] text-fg-2">
+        {label}
+      </div>
+      <div
+        className={cn(
+          "mt-0.5 font-mono text-[13px] tabular-nums",
+          value ? "text-fg-0" : "text-fg-2",
+        )}
+      >
+        {value ? format(value, "d MMM yyyy") : "Select date"}
+      </div>
+    </div>
   );
 }
 

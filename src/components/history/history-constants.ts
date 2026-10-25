@@ -35,6 +35,9 @@ export interface Filters {
   accts: string[];
   amtMin: number;
   amtMax: number;
+  /** yyyy-MM-dd, only used when range is "custom" */
+  customFrom?: string;
+  customTo?: string;
 }
 
 export const DEFAULT_FILTERS: Filters = {
@@ -45,3 +48,17 @@ export const DEFAULT_FILTERS: Filters = {
   amtMin: 0,
   amtMax: 0,
 };
+
+/** Label for the active date range; custom ranges render their dates. */
+export function getRangeLabel(
+  filters: Filters,
+  fmt: (iso: string) => string,
+): string {
+  if (filters.range === "custom" && filters.customFrom) {
+    const to = filters.customTo ?? filters.customFrom;
+    return to === filters.customFrom
+      ? fmt(filters.customFrom)
+      : `${fmt(filters.customFrom)} \u2013 ${fmt(to)}`;
+  }
+  return DATE_RANGES.find((r) => r.id === filters.range)?.label || "Last 30 days";
+}
