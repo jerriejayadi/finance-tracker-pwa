@@ -40,6 +40,8 @@ export type UpdateBudgetPayload = {
 
 export type SaveBudgetChangesPayload = {
   updates: ({ id: string } & UpdateBudgetPayload)[];
+  /** Name/icon edits, applied to the budget's category (see updateBudgetCategory) */
+  categoryEdits: { id: string; name: string; icon: string }[];
   creates: CreateBudgetPayload[];
   deleteIds: string[];
 };
@@ -51,13 +53,14 @@ export type BudgetMonthSummary = {
 };
 
 /**
- * Resolves budget category names without a `category_id` to category rows, creating
- * missing ones as the user's own expense categories so they show up in the
- * transaction category picker. Returns name → id.
+ * Resolves budget category names without a `category_id` to the user's own category
+ * rows, creating missing ones as expense categories. System defaults are never
+ * linked: a budget always gets the user's own category, even when a default of the
+ * same name exists (e.g. the income-only "Investment"). Returns name → id.
  */
 async function ensureExpenseCategories(
   userId: string,
-  payloads: CreateBudgetPayload[],
+  payloads: Pick<CreateBudgetPayload, "category" | "category_id" | "icon">[],
 ): Promise<Map<string, string>> {
   const missing = payloads.filter((p) => !p.category_id);
   const ids = new Map<string, string>();
@@ -66,13 +69,21 @@ async function ensureExpenseCategories(
   const names = [...new Set(missing.map((p) => p.category))];
   const { data: existing, error } = await supabase
     .from("categories")
-    .select("id, name, user_id")
-    .or(`user_id.is.null,user_id.eq.${userId}`)
+    .select("id, name, type")
+    .eq("user_id", userId)
     .in("name", names);
   if (error) throw new Error(error.message);
-  // Prefer the user's own category over a system default of the same name
-  for (const c of existing.sort((a, b) => Number(a.user_id !== null) - Number(b.user_id !== null))) {
-    ids.set(c.name, c.id);
+  for (const c of existing) ids.set(c.name, c.id);
+
+  // Budgets track expenses; an own income-only category can't be duplicated (unique
+  // per user + name), so widen it to "both" to make it pickable for expenses
+  const ownIncome = existing.filter((c) => c.type === "income");
+  if (ownIncome.length) {
+    const { error: widenError } = await supabase
+      .from("categories")
+      .update({ type: "both" })
+      .in("id", ownIncome.map((c) => c.id));
+    if (widenError) throw new Error(widenError.message);
   }
 
   const toCreate = names.filter((n) => !ids.has(n));
@@ -92,6 +103,60 @@ async function ensureExpenseCategories(
     for (const c of created) ids.set(c.name, c.id);
   }
   return ids;
+}
+
+/**
+ * Applies a name/icon edit from the budget edit drawer to the budget's category.
+ * The user's own category is renamed in place (so its transactions follow); a system
+ * default is swapped for the user's own category. Renaming to the name of another own
+ * category links the budget to that one instead.
+ */
+async function updateBudgetCategory(
+  userId: string,
+  budgetId: string,
+  { name, icon }: { name: string; icon: string },
+): Promise<void> {
+  const { data: budget, error } = await supabase
+    .from("budgets")
+    .select("category_id, categories(id, user_id, name)")
+    .eq("id", budgetId)
+    .single();
+  if (error) throw new Error(error.message);
+
+  const current = budget.categories as unknown as { id: string; user_id: string | null; name: string } | null;
+  let categoryId: string;
+  if (current?.user_id === userId && current.name === name) {
+    categoryId = current.id;
+  } else {
+    const { data: sameName, error: lookupError } = await supabase
+      .from("categories")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("name", name)
+      .maybeSingle();
+    if (lookupError) throw new Error(lookupError.message);
+
+    if (sameName) {
+      categoryId = sameName.id;
+    } else if (current?.user_id === userId) {
+      categoryId = current.id;
+    } else {
+      const ids = await ensureExpenseCategories(userId, [{ category: name, icon }]);
+      categoryId = ids.get(name)!;
+    }
+  }
+
+  const { error: catError } = await supabase
+    .from("categories")
+    .update({ name, icon })
+    .eq("id", categoryId);
+  if (catError) throw new Error(catError.message);
+
+  const { error: budgetError } = await supabase
+    .from("budgets")
+    .update({ category: name, category_id: categoryId })
+    .eq("id", budgetId);
+  if (budgetError) throw new Error(budgetError.message);
 }
 
 export const budgetsService = {
@@ -186,10 +251,22 @@ export const budgetsService = {
   },
 
   /** Applies an edit-drawer session (updates + creates + deletes) as one operation. */
-  saveBudgetChanges: async ({ updates, creates, deleteIds }: SaveBudgetChangesPayload): Promise<void> => {
+  saveBudgetChanges: async ({
+    updates,
+    categoryEdits,
+    creates,
+    deleteIds,
+  }: SaveBudgetChangesPayload): Promise<void> => {
     const ops: Promise<unknown>[] = updates.map(({ id, ...payload }) =>
       budgetsService.updateBudget(id, payload),
     );
+    if (categoryEdits.length) {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData.user) {
+        throw new Error(authError?.message ?? "Not authenticated");
+      }
+      ops.push(...categoryEdits.map(({ id, ...edit }) => updateBudgetCategory(authData.user.id, id, edit)));
+    }
     if (creates.length) ops.push(budgetsService.createBudgets(creates));
     if (deleteIds.length) {
       ops.push(
@@ -209,6 +286,31 @@ export const budgetsService = {
       .eq("id", id);
 
     if (error) throw new Error(error.message);
+  },
+
+  /**
+   * Category ids budgeted for `monthYear`, or for the latest earlier month with a budget
+   * (e.g. a new month whose budget isn't set up yet). Empty when there's none.
+   */
+  getBudgetCategoryIds: async (monthYear: string): Promise<string[]> => {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) {
+      throw new Error(authError?.message ?? "Not authenticated");
+    }
+
+    const { data, error } = await supabase
+      .from("budgets")
+      .select("month_year, category_id")
+      .eq("user_id", authData.user.id)
+      .lte("month_year", monthYear)
+      .order("month_year", { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    const latest = data[0]?.month_year;
+    return data
+      .filter((b) => b.month_year === latest && b.category_id)
+      .map((b) => b.category_id as string);
   },
 
   getBudgetMonths: async (): Promise<BudgetMonthSummary[]> => {

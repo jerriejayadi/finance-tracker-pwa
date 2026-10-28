@@ -13,6 +13,7 @@ export const budgetKeys = {
   all: ["budgets"] as const,
   month: (monthYear: string) => ["budgets", monthYear] as const,
   months: () => ["budgets", "months"] as const,
+  categoryIds: (monthYear: string) => ["budgets", "category-ids", monthYear] as const,
 };
 
 export const getBudgetsQueryOptions = (monthYear: string) => ({
@@ -28,6 +29,23 @@ type UseGetBudgetsParams = {
 export const useGetBudgets = ({ monthYear, queryConfig }: UseGetBudgetsParams) => {
   return useQuery({
     ...getBudgetsQueryOptions(monthYear),
+    ...queryConfig,
+  });
+};
+
+export const getBudgetCategoryIdsQueryOptions = (monthYear: string) => ({
+  queryKey: budgetKeys.categoryIds(monthYear),
+  queryFn: () => budgetsService.getBudgetCategoryIds(monthYear),
+});
+
+type UseGetBudgetCategoryIdsParams = {
+  monthYear: string;
+  queryConfig?: QueryConfig<typeof getBudgetCategoryIdsQueryOptions>;
+};
+
+export const useGetBudgetCategoryIds = ({ monthYear, queryConfig }: UseGetBudgetCategoryIdsParams) => {
+  return useQuery({
+    ...getBudgetCategoryIdsQueryOptions(monthYear),
     ...queryConfig,
   });
 };

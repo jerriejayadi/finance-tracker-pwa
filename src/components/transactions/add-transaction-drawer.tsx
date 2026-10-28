@@ -33,10 +33,10 @@ import {
 } from "lucide-react";
 import { useGetCategories } from "@/services/categories/categories.hooks";
 import { CategoryQuickGrid, CategoryPickerView } from "@/components/transactions/category-picker";
-import { categoriesForTxType } from "@/services/categories/categories.utils";
+import { pickerCategories } from "@/services/categories/categories.utils";
 import { useGetAccountBalances } from "@/services/accounts/accounts.hooks";
 import { useCreateTransaction, useGetCategoryUsage } from "@/services/transactions/transactions.hooks";
-import { useGetBudgets } from "@/services/budgets/budgets.hooks";
+import { useGetBudgetCategoryIds } from "@/services/budgets/budgets.hooks";
 import { useGetProfile } from "@/services/profile/profile.hooks";
 import { monthKey } from "@/components/budget/budget-constants";
 import type { AccountBalance } from "@/services/accounts/accounts.service";
@@ -380,7 +380,7 @@ export function AddTransactionDrawer({
     isError: accountsError,
     refetch: refetchAccounts,
   } = useGetAccountBalances();
-  const { data: budgets = [] } = useGetBudgets({
+  const { data: budgetCategoryIds = [] } = useGetBudgetCategoryIds({
     monthYear: monthKey(date.getFullYear(), date.getMonth()),
   });
   // Set after a successful save; the form is cleared on the next open so the
@@ -400,15 +400,14 @@ export function AddTransactionDrawer({
     },
   });
 
-  // All categories for the selected type (most-used, then budgeted, first), or a single
-  // "Uncategorized" fallback when the type has none
+  // Categories for the selected type (expenses: the date's budget categories), most-used
+  // first, or a single "Uncategorized" fallback when the type has none
   const UNCATEGORIZED_TILE = { id: "__uncategorized__", name: "Uncategorized", icon: "📝" };
 
   const displayCategories = React.useMemo(() => {
-    const budgetedIds = new Set(budgets.map((b) => b.category_id).filter((id): id is string => !!id));
-    const list = categoriesForTxType(categories, type, budgetedIds, categoryUsage);
+    const list = pickerCategories(categories, type, budgetCategoryIds, categoryUsage);
     return list.length > 0 ? list : [UNCATEGORIZED_TILE];
-  }, [categories, budgets, type, categoryUsage]);
+  }, [categories, budgetCategoryIds, type, categoryUsage]);
 
   // Active accounts
   const activeAccounts = React.useMemo(

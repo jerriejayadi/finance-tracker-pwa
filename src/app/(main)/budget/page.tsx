@@ -91,6 +91,10 @@ function BudgetPageContent() {
   const currency = profile?.currency_preference ?? "IDR";
   const { data: budgetData, isLoading } = useGetBudgets({ monthYear: key });
   const { data: categories = [] } = useGetCategories();
+  // Budgets link only to the user's own expense categories, never a system default of the
+  // same name; unmatched names are resolved (or created) by the budgets service
+  const findExpenseCategory = (name: string) =>
+    categories.find((c) => c.name === name && c.user_id !== null && c.type !== "income");
   const { data: budgetMonths = [] } = useGetBudgetMonths();
 
   // Fetch budget for the month user wants to copy from
@@ -165,7 +169,7 @@ function BudgetPageContent() {
 
   const handleSave = (rows: BudgetCategory[]) => {
     const payloads = rows.map((r) => {
-      const cat = categories.find((c) => c.name === r.name);
+      const cat = findExpenseCategory(r.name);
       return {
         month_year: key,
         category: r.name,
@@ -182,12 +186,17 @@ function BudgetPageContent() {
     const existingRows = rows.filter((r) => !r.id.startsWith("new-"));
     const newRows = rows.filter((r) => r.id.startsWith("new-"));
 
+    // Name/icon edits go to the budget's category, so the picker and history follow
+    const original = new Map((cats ?? []).map((c) => [c.id, c]));
     saveBudgetChanges.mutate({
-      updates: existingRows.map((r) => ({ id: r.id, planned_amount: r.budget, category: r.name })),
+      updates: existingRows.map((r) => ({ id: r.id, planned_amount: r.budget })),
+      categoryEdits: existingRows
+        .filter((r) => r.name.trim() && (r.name !== original.get(r.id)?.name || r.icon !== original.get(r.id)?.icon))
+        .map((r) => ({ id: r.id, name: r.name.trim(), icon: r.icon })),
       creates: newRows.map((r) => ({
         month_year: key,
         category: r.name,
-        category_id: categories.find((c) => c.name === r.name)?.id,
+        category_id: findExpenseCategory(r.name)?.id,
         icon: r.icon,
         planned_amount: r.budget,
         currency,

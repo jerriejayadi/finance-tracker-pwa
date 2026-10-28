@@ -33,10 +33,10 @@ import {
 } from "lucide-react";
 import { useGetCategories } from "@/services/categories/categories.hooks";
 import { CategoryQuickGrid, CategoryPickerView } from "@/components/transactions/category-picker";
-import { categoriesForTxType } from "@/services/categories/categories.utils";
+import { pickerCategories } from "@/services/categories/categories.utils";
 import { useGetAccountBalances } from "@/services/accounts/accounts.hooks";
 import { useGetCategoryUsage, useUpdateTransaction } from "@/services/transactions/transactions.hooks";
-import { useGetBudgets } from "@/services/budgets/budgets.hooks";
+import { useGetBudgetCategoryIds } from "@/services/budgets/budgets.hooks";
 import { useGetProfile } from "@/services/profile/profile.hooks";
 import { monthKey } from "@/components/budget/budget-constants";
 import type { AccountBalance } from "@/services/accounts/accounts.service";
@@ -365,7 +365,7 @@ export function EditTransactionDrawer({
     isError: accountsError,
     refetch: refetchAccounts,
   } = useGetAccountBalances();
-  const { data: budgets = [] } = useGetBudgets({
+  const { data: budgetCategoryIds = [] } = useGetBudgetCategoryIds({
     monthYear: monthKey(date.getFullYear(), date.getMonth()),
   });
   const updateTransaction = useUpdateTransaction({
@@ -381,14 +381,12 @@ export function EditTransactionDrawer({
     },
   });
 
-  // All categories for the selected type, most-used then budgeted first
-  const budgetedIds = React.useMemo(
-    () => new Set(budgets.map((b) => b.category_id).filter((id): id is string => !!id)),
-    [budgets],
-  );
+  // Categories for the selected type (expenses: the date's budget categories), most-used
+  // first; the transaction's saved category stays listed even if it's no longer budgeted
+  const savedCategoryId = transaction?.category_id ?? undefined;
   const displayCategories = React.useMemo(
-    () => categoriesForTxType(categories, type, budgetedIds, categoryUsage),
-    [categories, type, budgetedIds, categoryUsage],
+    () => pickerCategories(categories, type, budgetCategoryIds, categoryUsage, savedCategoryId),
+    [categories, type, budgetCategoryIds, categoryUsage, savedCategoryId],
   );
 
   // Active accounts
@@ -416,7 +414,7 @@ export function EditTransactionDrawer({
       setAcctKey(transfer.from);
       setAcctLabel(accountName(transfer.from));
     }
-    const options = categoriesForTxType(categories, next, budgetedIds, categoryUsage);
+    const options = pickerCategories(categories, next, budgetCategoryIds, categoryUsage, savedCategoryId);
     if (!options.some((c) => c.id === cat)) setCat(options[0]?.id ?? "");
   };
 
