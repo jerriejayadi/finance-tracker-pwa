@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fmtIDR, fmtIDRShort } from "@/lib/format";
+import { fmtIDR } from "@/lib/format";
 import {
   budgetFillColor,
   budgetPct,
@@ -134,12 +134,12 @@ function BudgetCategoryContent() {
           </div>
         </div>
 
-        <div className="mt-5 flex items-baseline gap-2 font-mono tabular-nums">
+        <div className="mt-5 flex flex-wrap items-baseline gap-x-2 font-mono tabular-nums">
           <span className="text-fg-0 text-[28px] font-medium tracking-tight">
             {fmtIDR(spent)}
           </span>
           <span className="text-fg-2 text-[13px]">
-            {t("ofBudget", { amount: fmtIDRShort(planned) })}
+            {t("ofBudget", { amount: fmtIDR(planned) })}
           </span>
         </div>
 
@@ -153,15 +153,15 @@ function BudgetCategoryContent() {
         <div className="mt-2 flex items-center justify-between gap-2 font-mono text-[12px] tabular-nums">
           <span className={cn(over ? "text-neg" : "text-fg-1")}>
             {over
-              ? t("overBy", { amount: fmtIDRShort(Math.abs(left)) })
-              : t("left", { amount: fmtIDRShort(left) })}
+              ? t("overBy", { amount: fmtIDR(Math.abs(left)) })
+              : t("left", { amount: fmtIDR(left) })}
           </span>
           <span className="text-fg-2">{Math.round(pct)}%</span>
         </div>
 
         {isCurrentMonth && !over && left > 0 && (
           <p className="text-fg-2 mt-3 text-[12px]">
-            {t("dailyLeft", { amount: fmtIDRShort(left / daysRemaining) })}
+            {t("dailyLeft", { amount: fmtIDR(left / daysRemaining) })}
           </p>
         )}
       </section>
