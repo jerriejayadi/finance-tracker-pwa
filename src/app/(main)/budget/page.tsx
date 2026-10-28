@@ -8,22 +8,20 @@ import {
 } from "@/components/budget/budget-constants";
 import { BudgetEmptyState } from "@/components/budget/budget-empty-state";
 import { BudgetHero } from "@/components/budget/budget-hero";
+import { BudgetIncomeList } from "@/components/budget/budget-income-list";
 import { BudgetInsight } from "@/components/budget/budget-insight";
 import { BudgetPace } from "@/components/budget/budget-pace";
 import type { BudgetCategory } from "@/components/budget/budget-types";
 import { CopyFromMonthDrawer } from "@/components/budget/copy-from-month-drawer";
-import { CreateBudgetDrawer } from "@/components/budget/create-budget-drawer";
+import { CreateBudgetDrawer, type BudgetRowsByKind } from "@/components/budget/create-budget-drawer";
 import { EditBudgetDrawer } from "@/components/budget/edit-budget-drawer";
 import { MonthPickerDrawer } from "@/components/budget/month-picker-drawer";
-import { Chip } from "@/components/ui/chip";
 import {
-  BarChart3,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Pencil,
   Plus,
-  Tag,
 } from "lucide-react";
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
@@ -32,13 +30,22 @@ import { useGetBudgets, useCreateBudgets, useSaveBudgetChanges, useGetBudgetMont
 import { toast } from "sonner";
 import { useGetCategories } from "@/services/categories/categories.hooks";
 import { useGetProfile } from "@/services/profile/profile.hooks";
+import type { BudgetKind, BudgetWithSpent } from "@/services/budgets/budgets.service";
 
-function pctOf(spent: number, budget: number): number {
-  if (budget <= 0) return 0;
-  return Math.min(999, (spent / budget) * 100);
+/** Budget rows in the shape the budget components use */
+function toBudgetCategories(rows: BudgetWithSpent[], kind: BudgetKind): BudgetCategory[] {
+  return rows
+    .filter((b) => b.kind === kind)
+    .map((b) => ({
+      id: b.id,
+      name: b.category_name || b.category,
+      icon: b.category_icon || "",
+      budget: Number(b.planned_amount),
+      spent: b.spent,
+      count: b.count,
+      kind,
+    }));
 }
-
-type FilterType = "all" | "active" | "over";
 
 export default function BudgetPage() {
   return (
@@ -58,7 +65,6 @@ function BudgetPageContent() {
   });
   const [year, setYear] = React.useState(initialMonth.y);
   const [month, setMonth] = React.useState(initialMonth.m);
-  const [filter, setFilter] = React.useState<FilterType>("all");
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
 
@@ -70,6 +76,12 @@ function BudgetPageContent() {
   }, [searchParams]);
   const [copyFromPrev, setCopyFromPrev] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
+  // Which list the edit drawer edits; kept after closing so it doesn't flip mid-animation
+  const [editKind, setEditKind] = React.useState<BudgetKind>("expense");
+  const openEdit = (kind: BudgetKind) => {
+    setEditKind(kind);
+    setEditOpen(true);
+  };
   const [copyDrawerOpen, setCopyDrawerOpen] = React.useState(false);
   const [copyFromMonth, setCopyFromMonth] = React.useState<string | null>(null);
   const [reallocateCategories, setReallocateCategories] = React.useState<BudgetCategory[] | null>(null);
@@ -91,10 +103,10 @@ function BudgetPageContent() {
   const currency = profile?.currency_preference ?? "IDR";
   const { data: budgetData, isLoading } = useGetBudgets({ monthYear: key });
   const { data: categories = [] } = useGetCategories();
-  // Budgets link only to the user's own expense categories, never a system default of the
-  // same name; unmatched names are resolved (or created) by the budgets service
-  const findExpenseCategory = (name: string) =>
-    categories.find((c) => c.name === name && c.user_id !== null && c.type !== "income");
+  // Budgets link only to the user's own categories of the budget's kind, never a system
+  // default of the same name; unmatched names are resolved (or created) by the budgets service
+  const findOwnCategory = (name: string, kind: BudgetKind) =>
+    categories.find((c) => c.name === name && c.user_id !== null && c.type === kind);
   const { data: budgetMonths = [] } = useGetBudgetMonths();
 
   // Fetch budget for the month user wants to copy from
@@ -122,20 +134,24 @@ function BudgetPageContent() {
     },
   });
 
-  // Map to BudgetCategory shape for existing components
-  const cats: BudgetCategory[] | null = React.useMemo(() => {
-    if (!budgetData || budgetData.length === 0) return null;
-    return budgetData.map((b) => ({
-      id: b.id,
-      name: b.category_name || b.category,
-      icon: b.category_icon || "",
-      budget: Number(b.planned_amount),
-      spent: b.spent,
-      count: b.count,
-    }));
-  }, [budgetData]);
+  // Map to BudgetCategory shape for existing components, split by kind
+  const incomeCats = React.useMemo(() => toBudgetCategories(budgetData ?? [], "income"), [budgetData]);
+  const expenseCats = React.useMemo(() => toBudgetCategories(budgetData ?? [], "expense"), [budgetData]);
+  const hasBudget = !!budgetData && budgetData.length > 0;
 
-  const isEmpty = !isLoading && (!cats || cats.length === 0);
+  // Rows to start from when copying a month (stable, so the create drawer doesn't reset)
+  const copyInitial: BudgetRowsByKind | null = React.useMemo(
+    () =>
+      copyFromPrev && copySourceData
+        ? {
+            income: toBudgetCategories(copySourceData, "income"),
+            expense: toBudgetCategories(copySourceData, "expense"),
+          }
+        : null,
+    [copyFromPrev, copySourceData],
+  );
+
+  const isEmpty = !isLoading && !hasBudget;
 
   React.useEffect(() => {
     if (copyFromMonth && copySourceData && copySourceData.length > 0) {
@@ -159,45 +175,38 @@ function BudgetPageContent() {
     setYear(y);
   };
 
-  const filtered = React.useMemo(() => {
-    if (!cats) return [];
-    if (filter === "over")
-      return cats.filter((c) => pctOf(c.spent, c.budget) >= 85);
-    if (filter === "active") return cats.filter((c) => c.spent > 0);
-    return cats;
-  }, [cats, filter]);
-
-  const handleSave = (rows: BudgetCategory[]) => {
-    const payloads = rows.map((r) => {
-      const cat = findExpenseCategory(r.name);
-      return {
+  const handleSave = (rows: BudgetRowsByKind) => {
+    const payloads = (["income", "expense"] as const).flatMap((kind) =>
+      rows[kind].map((r) => ({
         month_year: key,
         category: r.name,
-        category_id: cat?.id,
+        category_id: findOwnCategory(r.name, kind)?.id,
         icon: r.icon,
+        kind,
         planned_amount: r.budget,
         currency,
-      };
-    });
-    createBudgets.mutate(payloads);
+      })),
+    );
+    createBudgets.mutate(payloads, { onError: (err) => toast.error(err.message) });
   };
 
-  const handleEditSave = (rows: BudgetCategory[], removedIds: string[]) => {
+  const handleEditSave = (kind: BudgetKind) => (rows: BudgetCategory[], removedIds: string[]) => {
     const existingRows = rows.filter((r) => !r.id.startsWith("new-"));
     const newRows = rows.filter((r) => r.id.startsWith("new-"));
 
     // Name/icon edits go to the budget's category, so the picker and history follow
-    const original = new Map((cats ?? []).map((c) => [c.id, c]));
+    const original = new Map((kind === "income" ? incomeCats : expenseCats).map((c) => [c.id, c]));
     saveBudgetChanges.mutate({
       updates: existingRows.map((r) => ({ id: r.id, planned_amount: r.budget })),
       categoryEdits: existingRows
         .filter((r) => r.name.trim() && (r.name !== original.get(r.id)?.name || r.icon !== original.get(r.id)?.icon))
-        .map((r) => ({ id: r.id, name: r.name.trim(), icon: r.icon })),
+        .map((r) => ({ id: r.id, name: r.name.trim(), icon: r.icon, kind })),
       creates: newRows.map((r) => ({
         month_year: key,
         category: r.name,
-        category_id: findExpenseCategory(r.name)?.id,
+        category_id: findOwnCategory(r.name, kind)?.id,
         icon: r.icon,
+        kind,
         planned_amount: r.budget,
         currency,
       })),
@@ -206,14 +215,14 @@ function BudgetPageContent() {
   };
 
   const handleReallocate = (fromId: string, toId: string, amount: number) => {
-    const adjusted = (cats ?? []).map((c) => {
+    const adjusted = expenseCats.map((c) => {
       if (c.id === fromId) return { ...c, budget: Math.max(0, c.budget - amount) };
       if (c.id === toId) return { ...c, budget: c.budget + amount };
       return c;
     });
     setReallocateCategories(adjusted);
     setReallocateHighlights([fromId, toId]);
-    setEditOpen(true);
+    openEdit("expense");
   };
 
   return (
@@ -260,74 +269,33 @@ function BudgetPageContent() {
           }}
           onCopyFromTemplate={() => setCopyDrawerOpen(true)}
         />
-      ) : !isLoading && cats ? (
+      ) : !isLoading && hasBudget ? (
         <>
-          <BudgetHero categories={cats} year={year} month={month} />
-          <BudgetPace categories={cats} year={year} month={month} />
+          <BudgetHero categories={expenseCats} year={year} month={month} />
+          <BudgetPace categories={expenseCats} year={year} month={month} />
 
-          {/* Section title + edit button */}
-          <div className="mt-2 flex items-center justify-between px-5">
-            <h2 className="text-fg-2 text-[11px] font-semibold tracking-[0.06em] uppercase">
-              Categories
-            </h2>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setEditOpen(true)}
-                className="text-[12px] text-brand flex items-center gap-1 cursor-pointer hover:text-brand-hi"
-              >
-                <Pencil size={12} strokeWidth={1.75} /> {tCommon("edit")}
-              </button>
-              <div className="bg-bg-1 border-line flex items-center gap-0.5 rounded-sm border p-[3px]">
-                <button className="bg-bg-3 text-fg-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-xs">
-                  <Tag size={12} strokeWidth={1.75} />
-                </button>
-                <button className="text-fg-2 hover:text-fg-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-xs">
-                  <BarChart3 size={12} strokeWidth={1.75} />
-                </button>
-              </div>
-            </div>
-          </div>
+          {/* Income categories */}
+          <SectionHeader title="Income categories" onEdit={() => openEdit("income")} />
+          {incomeCats.length > 0 ? (
+            <BudgetIncomeList categories={incomeCats} monthKey={key} />
+          ) : (
+            <AddCategoryButton onClick={() => openEdit("income")}>
+              Add income category
+            </AddCategoryButton>
+          )}
 
-          {/* Filter chips */}
-          <div className="hide-scrollbar flex gap-1.5 overflow-x-auto px-5 pb-1">
-            <Chip
-              active={filter === "all"}
-              count={cats.length}
-              onClick={() => setFilter("all")}
-            >
-              {tCommon("all")}
-            </Chip>
-            <Chip
-              active={filter === "active"}
-              count={cats.filter((c) => c.spent > 0).length}
-              onClick={() => setFilter("active")}
-            >
-              Active
-            </Chip>
-            <Chip
-              active={filter === "over"}
-              count={cats.filter((c) => pctOf(c.spent, c.budget) >= 85).length}
-              onClick={() => setFilter("over")}
-            >
-              Watch
-            </Chip>
-          </div>
-
-          <BudgetCategoryList categories={filtered} monthKey={key} />
+          {/* Expense categories */}
+          <SectionHeader title="Expense categories" onEdit={() => openEdit("expense")} />
+          <BudgetCategoryList categories={expenseCats} monthKey={key} />
           <BudgetInsight
             month={month}
-            categories={cats}
+            categories={expenseCats}
             onReallocate={handleReallocate}
           />
 
-          {/* Add category CTA */}
-          <button
-            onClick={() => setEditOpen(true)}
-            className="border-line text-fg-1 hover:bg-bg-1 hover:border-brand mx-4 flex h-14 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed text-[13px] transition-colors"
-          >
-            <Plus size={16} strokeWidth={1.75} />
+          <AddCategoryButton onClick={() => openEdit("expense")}>
             Add another category
-          </button>
+          </AddCategoryButton>
         </>
       ) : null}
 
@@ -355,18 +323,7 @@ function BudgetPageContent() {
         year={year}
         month={month}
         onSave={handleSave}
-        initialCategories={
-          copyFromPrev && copySourceData
-            ? copySourceData.map((b) => ({
-                id: b.id,
-                name: b.category_name || b.category,
-                icon: b.category_icon || "",
-                budget: Number(b.planned_amount),
-                spent: 0,
-                count: 0,
-              }))
-            : null
-        }
+        initialCategories={copyInitial}
       />
       <CopyFromMonthDrawer
         open={copyDrawerOpen}
@@ -374,24 +331,50 @@ function BudgetPageContent() {
         currentMonthYear={key}
         onSelect={(monthYear) => setCopyFromMonth(monthYear)}
       />
-      {cats && (
-        <EditBudgetDrawer
-          open={editOpen}
-          onOpenChange={(open) => {
-            setEditOpen(open);
-            if (!open) {
-              setReallocateCategories(null);
-              setReallocateHighlights([]);
-            }
-          }}
-          year={year}
-          month={month}
-          categories={reallocateCategories ?? cats}
-          onSave={handleEditSave}
-          saving={saveBudgetChanges.isPending}
-          highlightedIds={reallocateHighlights}
-        />
-      )}
+      <EditBudgetDrawer
+        open={editOpen}
+        onOpenChange={(open) => {
+          if (!open) closeEdit();
+        }}
+        kind={editKind}
+        year={year}
+        month={month}
+        categories={
+          editKind === "income" ? incomeCats : (reallocateCategories ?? expenseCats)
+        }
+        onSave={handleEditSave(editKind)}
+        saving={saveBudgetChanges.isPending}
+        highlightedIds={reallocateHighlights}
+      />
     </main>
+  );
+}
+
+function SectionHeader({ title, onEdit }: { title: string; onEdit: () => void }) {
+  const tCommon = useTranslations("common");
+  return (
+    <div className="mt-2 flex items-center justify-between px-5">
+      <h2 className="text-fg-2 text-[11px] font-semibold tracking-[0.06em] uppercase">
+        {title}
+      </h2>
+      <button
+        onClick={onEdit}
+        className="text-[12px] text-brand flex items-center gap-1 cursor-pointer hover:text-brand-hi"
+      >
+        <Pencil size={12} strokeWidth={1.75} /> {tCommon("edit")}
+      </button>
+    </div>
+  );
+}
+
+function AddCategoryButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className="border-line text-fg-1 hover:bg-bg-1 hover:border-brand mx-4 flex h-14 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed text-[13px] transition-colors"
+    >
+      <Plus size={16} strokeWidth={1.75} />
+      {children}
+    </button>
   );
 }

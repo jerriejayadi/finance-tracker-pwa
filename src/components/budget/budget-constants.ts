@@ -26,10 +26,15 @@ export const DEFAULT_CATEGORY_TEMPLATE: BudgetCategoryTemplate[] = [
   { id: "subs", name: "Subscriptions", icon: "♪", suggested: 250_000 },
 ];
 
+export const INCOME_CATEGORY_TEMPLATE: BudgetCategoryTemplate[] = [
+  { id: "salary", name: "Gaji", icon: "💼", suggested: 15_000_000 },
+];
+
 export const ICON_PALETTE = [
   "✨", "🙏", "💝", "📚", "🎁", "💊", "🐾", "✈️",
   "💪", "🎮", "☕", "💸", "🏠", "🚗", "👶", "🎓",
   "🛒", "🍜", "⌁", "🎬", "🛍", "✚", "♪", "🍔",
+  "💼", "📈", "💻",
 ];
 
 

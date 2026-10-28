@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { useGetCategories } from "@/services/categories/categories.hooks";
 import { CategoryQuickGrid, CategoryPickerView } from "@/components/transactions/category-picker";
-import { pickerCategories } from "@/services/categories/categories.utils";
+import { EMPTY_BUDGET_CATEGORY_IDS, pickerCategories } from "@/services/categories/categories.utils";
 import { useGetAccountBalances } from "@/services/accounts/accounts.hooks";
 import { useGetCategoryUsage, useUpdateTransaction } from "@/services/transactions/transactions.hooks";
 import { useGetBudgetCategoryIds } from "@/services/budgets/budgets.hooks";
@@ -365,7 +365,7 @@ export function EditTransactionDrawer({
     isError: accountsError,
     refetch: refetchAccounts,
   } = useGetAccountBalances();
-  const { data: budgetCategoryIds = [] } = useGetBudgetCategoryIds({
+  const { data: budgetCategoryIds = EMPTY_BUDGET_CATEGORY_IDS } = useGetBudgetCategoryIds({
     monthYear: monthKey(date.getFullYear(), date.getMonth()),
   });
   const updateTransaction = useUpdateTransaction({

@@ -13,10 +13,13 @@ import {
 import { Toggle } from "@/components/ui/toggle";
 import { MONTH_NAMES, ICON_PALETTE } from "./budget-constants";
 import type { BudgetCategory, CreateBudgetRow } from "./budget-types";
+import type { BudgetKind } from "@/services/budgets/budgets.service";
 
 interface EditBudgetDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Which list is being edited: income or expense categories */
+  kind: BudgetKind;
   year: number;
   month: number;
   categories: BudgetCategory[];
@@ -29,6 +32,7 @@ interface EditBudgetDrawerProps {
 export function EditBudgetDrawer({
   open,
   onOpenChange,
+  kind,
   year,
   month,
   categories,
@@ -102,7 +106,8 @@ export function EditBudgetDrawer({
 
   const save = () => {
     const finalRows: BudgetCategory[] = rows
-      .filter((r) => r.enabled && r.budget > 0)
+      // Rp0 rows are kept: a budgeted category is what makes it pickable for transactions
+      .filter((r) => r.enabled)
       .map((r) => ({
         id: r.id,
         name: r.name,
@@ -127,7 +132,7 @@ export function EditBudgetDrawer({
               <X size={14} strokeWidth={1.75} />
             </button>
             <DrawerTitle className="!text-[16px]">
-              Edit budget &middot; {MONTH_NAMES[month]}
+              Edit {kind} categories &middot; {MONTH_NAMES[month]}
             </DrawerTitle>
           </div>
           <span className="text-[12px] text-fg-2 font-mono">
@@ -139,7 +144,7 @@ export function EditBudgetDrawer({
           {/* Summary bar */}
           <div className="p-3.5 rounded-lg bg-bg-1 border border-line mb-4">
             <div className="flex justify-between text-[12px]">
-              <span className="text-fg-2">Total allocated</span>
+              <span className="text-fg-2">{kind === "income" ? "Expected income" : "Total allocated"}</span>
               <span className="font-mono tabular-nums text-fg-0 font-medium">
                 {fmtIDR(totalAllocated)}
               </span>
@@ -355,7 +360,7 @@ export function EditBudgetDrawer({
             </button>
             <button
               onClick={save}
-              disabled={totalAllocated <= 0 || saving}
+              disabled={saving}
               className="flex-1 h-11 rounded-sm bg-brand text-brand-ink text-[14px] font-medium cursor-pointer hover:bg-brand-hi transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
             >
               {saving && <Loader2 size={16} className="animate-spin" />}

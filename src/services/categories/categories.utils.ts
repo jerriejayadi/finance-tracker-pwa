@@ -1,4 +1,5 @@
 import type { Category } from "./categories.service";
+import type { BudgetCategoryIds } from "@/services/budgets/budgets.service";
 
 export type CategoryTxType = "expense" | "income" | "transfer";
 
@@ -24,24 +25,27 @@ export function categoriesForTxType(
   );
 }
 
+/** Stable empty value for callers whose budget-category query hasn't loaded yet. */
+export const EMPTY_BUDGET_CATEGORY_IDS: BudgetCategoryIds = { income: [], expense: [] };
+
 /**
- * Categories for the transaction picker. Expenses only offer the categories budgeted
- * for the transaction's month (see getBudgetCategoryIds), so every expense lands in a
- * budget; with no budget at all it falls back to every expense category. `keepId`
- * stays listed so editing an old transaction never hides its current category.
+ * Categories for the transaction picker. Expenses and income only offer the categories
+ * budgeted for the transaction's month (see getBudgetCategoryIds), so every transaction
+ * lands in a budget; a kind with no budget at all falls back to every category of that
+ * type. `keepId` stays listed so editing an old transaction never hides its category.
  */
 export function pickerCategories(
   categories: Category[],
   txType: CategoryTxType,
-  budgetCategoryIds: readonly string[],
+  budgetCategoryIds: BudgetCategoryIds,
   usage: Readonly<Record<string, number>> = {},
   keepId?: string,
 ): Category[] {
-  const budgetedIds = new Set(budgetCategoryIds);
-  if (txType !== "expense" || budgetedIds.size === 0) {
+  const budgetedIds = new Set(txType === "transfer" ? [] : budgetCategoryIds[txType]);
+  if (budgetedIds.size === 0) {
     return categoriesForTxType(categories, txType, budgetedIds, usage);
   }
-  // Budgeted categories regardless of their own type: the budget is what makes them expenses
+  // Budgeted categories regardless of their own type: the budget decides the kind
   return categories
     .filter((c) => budgetedIds.has(c.id) || c.id === keepId)
     .sort((a, b) => (usage[b.id] ?? 0) - (usage[a.id] ?? 0));

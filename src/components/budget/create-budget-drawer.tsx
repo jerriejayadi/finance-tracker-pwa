@@ -15,16 +15,42 @@ import {
   MONTH_NAMES,
   DEFAULT_CATEGORY_TEMPLATE,
   ICON_PALETTE,
+  INCOME_CATEGORY_TEMPLATE,
 } from "./budget-constants";
-import type { BudgetCategory, CreateBudgetRow } from "./budget-types";
+import type { BudgetCategory, BudgetCategoryTemplate, CreateBudgetRow } from "./budget-types";
 
 interface CreateBudgetDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   year: number;
   month: number;
-  onSave: (rows: BudgetCategory[]) => void;
-  initialCategories?: BudgetCategory[] | null;
+  onSave: (rows: BudgetRowsByKind) => void;
+  /** Rows to start from when copying another month */
+  initialCategories?: BudgetRowsByKind | null;
+}
+
+export type BudgetRowsByKind = { income: BudgetCategory[]; expense: BudgetCategory[] };
+
+function fromTemplate(template: BudgetCategoryTemplate[]): CreateBudgetRow[] {
+  return template.map((c) => ({ ...c, budget: c.suggested, enabled: true }));
+}
+
+function fromBudget(categories: BudgetCategory[]): CreateBudgetRow[] {
+  return categories.map((c) => ({
+    id: c.id,
+    name: c.name,
+    icon: c.icon,
+    suggested: c.budget,
+    budget: c.budget,
+    enabled: true,
+  }));
+}
+
+function toBudgetCategories(rows: CreateBudgetRow[]): BudgetCategory[] {
+  return rows
+    // Rp0 rows are kept: a budgeted category is what makes it pickable for transactions
+    .filter((r) => r.enabled)
+    .map((r) => ({ id: r.id, name: r.name, icon: r.icon, budget: r.budget, spent: 0, count: 0 }));
 }
 
 export function CreateBudgetDrawer({
@@ -36,98 +62,45 @@ export function CreateBudgetDrawer({
   initialCategories,
 }: CreateBudgetDrawerProps) {
   const [step, setStep] = React.useState(1);
-  const [income, setIncome] = React.useState(15_000_000);
+  const [incomeRows, setIncomeRows] = React.useState<CreateBudgetRow[]>(() =>
+    fromTemplate(INCOME_CATEGORY_TEMPLATE)
+  );
   const [rows, setRows] = React.useState<CreateBudgetRow[]>(() =>
-    DEFAULT_CATEGORY_TEMPLATE.map((c) => ({
-      ...c,
-      budget: c.suggested,
-      enabled: true,
-    }))
+    fromTemplate(DEFAULT_CATEGORY_TEMPLATE)
   );
   const [recurring, setRecurring] = React.useState(true);
-  const [addingCat, setAddingCat] = React.useState(false);
-  const [newCatName, setNewCatName] = React.useState("");
-  const [newCatIcon, setNewCatIcon] = React.useState("✨");
-  const [newCatAmt, setNewCatAmt] = React.useState(500_000);
-  const [editingId, setEditingId] = React.useState<string | null>(null);
 
   // Reset when drawer opens
   React.useEffect(() => {
     if (open) {
       setStep(1);
-      setIncome(15_000_000);
-      if (initialCategories && initialCategories.length > 0) {
-        setRows(
-          initialCategories.map((c) => ({
-            id: c.id,
-            name: c.name,
-            icon: c.icon,
-            suggested: c.budget,
-            budget: c.budget,
-            enabled: true,
-          }))
-        );
-      } else {
-        setRows(
-          DEFAULT_CATEGORY_TEMPLATE.map((c) => ({
-            ...c,
-            budget: c.suggested,
-            enabled: true,
-          }))
-        );
-      }
+      // Copying a month: its rows per kind, or the defaults for a kind it didn't have
+      setIncomeRows(
+        initialCategories?.income.length
+          ? fromBudget(initialCategories.income)
+          : fromTemplate(INCOME_CATEGORY_TEMPLATE)
+      );
+      setRows(
+        initialCategories?.expense.length
+          ? fromBudget(initialCategories.expense)
+          : fromTemplate(DEFAULT_CATEGORY_TEMPLATE)
+      );
       setRecurring(true);
-      setAddingCat(false);
-      setEditingId(null);
     }
   }, [open, initialCategories]);
 
+  const income = incomeRows
+    .filter((r) => r.enabled)
+    .reduce((a, r) => a + r.budget, 0);
   const totalAllocated = rows
     .filter((r) => r.enabled)
     .reduce((a, r) => a + r.budget, 0);
   const unallocated = income - totalAllocated;
   const allocPct = income > 0 ? (totalAllocated / income) * 100 : 0;
 
-  const updateRow = (id: string, patch: Partial<CreateBudgetRow>) => {
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-  };
-
-  const addCategory = () => {
-    const name = newCatName.trim();
-    if (!name) return;
-    setRows((prev) => [
-      ...prev,
-      {
-        id: "custom-" + Date.now(),
-        name,
-        icon: newCatIcon,
-        suggested: newCatAmt,
-        budget: newCatAmt,
-        enabled: true,
-        custom: true,
-      },
-    ]);
-    setNewCatName("");
-    setNewCatIcon("✨");
-    setNewCatAmt(500_000);
-    setAddingCat(false);
-  };
-
   const save = () => {
-    const finalRows: BudgetCategory[] = rows
-      .filter((r) => r.enabled && r.budget > 0)
-      .map((r) => ({
-        id: r.id,
-        name: r.name,
-        icon: r.icon,
-        budget: r.budget,
-        spent: 0,
-        count: 0,
-      }));
-    onSave(finalRows);
+    onSave({ income: toBudgetCategories(incomeRows), expense: toBudgetCategories(rows) });
   };
-
-  const incomePresets = [5_000_000, 10_000_000, 15_000_000, 20_000_000, 30_000_000];
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -175,10 +148,10 @@ export function CreateBudgetDrawer({
         <div className="flex-1 overflow-y-auto px-5 pb-6">
           {step === 1 && (
             <StepIncome
+              rows={incomeRows}
+              setRows={setIncomeRows}
               income={income}
-              setIncome={setIncome}
               month={month}
-              presets={incomePresets}
               onContinue={() => setStep(2)}
               onCancel={() => onOpenChange(false)}
             />
@@ -188,24 +161,13 @@ export function CreateBudgetDrawer({
             <StepAllocate
               income={income}
               rows={rows}
+              setRows={setRows}
               totalAllocated={totalAllocated}
               unallocated={unallocated}
               allocPct={allocPct}
-              updateRow={updateRow}
-              editingId={editingId}
-              setEditingId={setEditingId}
-              addingCat={addingCat}
-              setAddingCat={setAddingCat}
-              newCatName={newCatName}
-              setNewCatName={setNewCatName}
-              newCatIcon={newCatIcon}
-              setNewCatIcon={setNewCatIcon}
-              newCatAmt={newCatAmt}
-              setNewCatAmt={setNewCatAmt}
-              addCategory={addCategory}
-              setRows={setRows}
               recurring={recurring}
               setRecurring={setRecurring}
+              canSave={[...incomeRows, ...rows].some((r) => r.enabled)}
               onCancel={() => onOpenChange(false)}
               onSave={save}
             />
@@ -216,132 +178,54 @@ export function CreateBudgetDrawer({
   );
 }
 
-/* ─── Step 1: Income ─── */
+/* ─── Step 1: Income categories ─── */
 function StepIncome({
+  rows,
+  setRows,
   income,
-  setIncome,
   month,
-  presets,
   onContinue,
   onCancel,
 }: {
+  rows: CreateBudgetRow[];
+  setRows: React.Dispatch<React.SetStateAction<CreateBudgetRow[]>>;
   income: number;
-  setIncome: (v: number) => void;
   month: number;
-  presets: number[];
   onContinue: () => void;
   onCancel: () => void;
 }) {
-  const [isFocused, setIsFocused] = React.useState(false);
-  const [editingValue, setEditingValue] = React.useState("");
-  const textRef = React.useRef<HTMLSpanElement>(null);
-
-  const displayFormatted = isFocused
-    ? (editingValue || "0").replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-    : income.toLocaleString("id-ID");
-
   return (
     <div className="flex flex-col gap-4">
       <div className="text-[11px] text-fg-2 uppercase tracking-[0.06em] font-medium">
-        Step 1 &middot; Monthly income
-      </div>
-
-      {/* Amount input — tap to edit */}
-      <div
-        className="relative flex items-baseline justify-center gap-1 py-4 pb-3 font-mono tabular-nums cursor-text group"
-        onClick={() => document.getElementById("income-input")?.focus()}
-      >
-        <span className="text-[22px] text-fg-2">Rp</span>
-        <span
-          ref={textRef}
-          className={cn(
-            "text-[44px] font-medium leading-none tracking-[-0.02em] text-fg-0",
-            income === 0 && !isFocused && "text-fg-3"
-          )}
-        >
-          {displayFormatted}
-        </span>
-        {isFocused && (
-          <span className="w-[2.5px] h-[34px] bg-brand animate-pulse rounded-full ml-0.5 self-center" />
-        )}
-        <input
-          id="income-input"
-          type="text"
-          inputMode="numeric"
-          className="absolute inset-0 opacity-0 w-full h-full cursor-text"
-          value={isFocused ? editingValue : ""}
-          onFocus={() => {
-            setIsFocused(true);
-            setEditingValue(income === 0 ? "" : String(income));
-          }}
-          onChange={(e) => {
-            const val = e.target.value.replace(/\D/g, "");
-            setEditingValue(val);
-            const parsed = parseInt(val) || 0;
-            setIncome(parsed);
-          }}
-          onBlur={() => {
-            setIsFocused(false);
-            const parsed = parseInt(editingValue) || 0;
-            setIncome(parsed);
-            setEditingValue("");
-          }}
-        />
+        Step 1 &middot; Income categories
       </div>
 
       <p className="text-[13px] text-fg-1">
-        How much do you expect to receive in {MONTH_NAMES[month]}? You can
+        How much do you expect to receive in {MONTH_NAMES[month]}, and from where? You can
         change this anytime.
       </p>
 
-      {/* Preset chips */}
-      <div className="flex flex-wrap gap-2">
-        {presets.map((p) => (
-          <button
-            key={p}
-            onClick={() => setIncome(p)}
-            className={cn(
-              "h-7 px-3 rounded-full text-[12px] font-mono border cursor-pointer transition-colors",
-              income === p
-                ? "bg-brand-soft border-brand text-brand"
-                : "bg-bg-2 border-line text-fg-1 hover:bg-bg-3"
-            )}
-          >
-            {fmtIDRShort(p)}
-          </button>
-        ))}
-      </div>
+      <CategoryRowsEditor
+        rows={rows}
+        setRows={setRows}
+        addLabel="Add income category"
+        placeholder="Category name (e.g. Freelance)"
+        template={INCOME_CATEGORY_TEMPLATE}
+      />
 
-      {/* Slider */}
-      <div className="mt-2">
-        <input
-          type="range"
-          min={1_000_000}
-          max={50_000_000}
-          step={500_000}
-          value={income}
-          onChange={(e) => setIncome(parseInt(e.target.value))}
-          className="w-full accent-brand"
-        />
-        <div className="flex justify-between text-[10px] text-fg-2 font-mono mt-1">
-          <span>1jt</span>
-          <span>15jt</span>
-          <span>30jt</span>
-          <span>50jt</span>
-        </div>
+      <div className="flex justify-between p-3.5 rounded-lg bg-bg-1 border border-line text-[13px]">
+        <span className="text-fg-0 font-medium">Expected income</span>
+        <span className="font-mono tabular-nums text-pos font-medium">{fmtIDR(income)}</span>
       </div>
 
       {/* Tip */}
-      <div className="flex items-center gap-2 text-[11px] text-fg-2 mt-2">
+      <div className="flex items-center gap-2 text-[11px] text-fg-2">
         <Sparkles size={12} strokeWidth={1.75} className="text-brand" />
-        <span>
-          Tip: Use your average take-home pay. We&apos;ll suggest 50/30/20
-          splits.
-        </span>
+        <span>Tip: Use your average take-home pay.</span>
       </div>
 
       {/* Footer */}
-      <div className="flex items-center gap-3 mt-4 pt-4 border-t border-line">
+      <div className="flex items-center gap-3 mt-2 pt-4 border-t border-line">
         <button
           onClick={onCancel}
           className="flex-1 h-11 rounded-sm border border-line text-[14px] text-fg-1 cursor-pointer hover:bg-bg-2 transition-colors"
@@ -350,7 +234,6 @@ function StepIncome({
         </button>
         <button
           onClick={onContinue}
-          disabled={income <= 0}
           className="flex-1 h-11 rounded-sm bg-brand text-brand-ink text-[14px] font-medium cursor-pointer hover:bg-brand-hi transition-colors disabled:opacity-40"
         >
           Continue
@@ -364,54 +247,33 @@ function StepIncome({
 function StepAllocate({
   income,
   rows,
+  setRows,
   totalAllocated,
   unallocated,
   allocPct,
-  updateRow,
-  editingId,
-  setEditingId,
-  addingCat,
-  setAddingCat,
-  newCatName,
-  setNewCatName,
-  newCatIcon,
-  setNewCatIcon,
-  newCatAmt,
-  setNewCatAmt,
-  addCategory,
-  setRows,
   recurring,
   setRecurring,
+  canSave,
   onCancel,
   onSave,
 }: {
   income: number;
   rows: CreateBudgetRow[];
+  setRows: React.Dispatch<React.SetStateAction<CreateBudgetRow[]>>;
   totalAllocated: number;
   unallocated: number;
   allocPct: number;
-  updateRow: (id: string, patch: Partial<CreateBudgetRow>) => void;
-  editingId: string | null;
-  setEditingId: (id: string | null) => void;
-  addingCat: boolean;
-  setAddingCat: (v: boolean) => void;
-  newCatName: string;
-  setNewCatName: (v: string) => void;
-  newCatIcon: string;
-  setNewCatIcon: (v: string) => void;
-  newCatAmt: number;
-  setNewCatAmt: (v: number) => void;
-  addCategory: () => void;
-  setRows: React.Dispatch<React.SetStateAction<CreateBudgetRow[]>>;
   recurring: boolean;
   setRecurring: (v: boolean) => void;
+  /** At least one income or expense row is switched on */
+  canSave: boolean;
   onCancel: () => void;
   onSave: () => void;
 }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="text-[11px] text-fg-2 uppercase tracking-[0.06em] font-medium">
-        Step 2 &middot; Allocate by category
+        Step 2 &middot; Expense categories
       </div>
 
       {/* Allocation summary */}
@@ -461,7 +323,94 @@ function StepAllocate({
         </div>
       </div>
 
-      {/* Category rows */}
+      <CategoryRowsEditor
+        rows={rows}
+        setRows={setRows}
+        addLabel="Add custom category"
+        placeholder="Category name (e.g. Tithe)"
+        template={DEFAULT_CATEGORY_TEMPLATE}
+      />
+
+      {/* Recurring toggle */}
+      <div className="flex items-center justify-between p-3.5 rounded-lg bg-bg-1 border border-line">
+        <div>
+          <div className="text-[13px] text-fg-0 font-medium">
+            Repeat every month
+          </div>
+          <div className="text-[11px] text-fg-2">
+            Auto-create the same budget for future months
+          </div>
+        </div>
+        <Toggle checked={recurring} onCheckedChange={setRecurring} />
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center gap-3 pt-4 border-t border-line">
+        <button
+          onClick={onCancel}
+          className="flex-1 h-11 rounded-sm border border-line text-[14px] text-fg-1 cursor-pointer hover:bg-bg-2 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onSave}
+          disabled={!canSave}
+          className="flex-1 h-11 rounded-sm bg-brand text-brand-ink text-[14px] font-medium cursor-pointer hover:bg-brand-hi transition-colors disabled:opacity-40"
+        >
+          Save budget
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Shared row list: edit, toggle, remove, add ─── */
+function CategoryRowsEditor({
+  rows,
+  setRows,
+  addLabel,
+  placeholder,
+  template,
+}: {
+  rows: CreateBudgetRow[];
+  setRows: React.Dispatch<React.SetStateAction<CreateBudgetRow[]>>;
+  addLabel: string;
+  placeholder: string;
+  /** Defaults the rows started from, for "Reset to default" */
+  template: BudgetCategoryTemplate[];
+}) {
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [addingCat, setAddingCat] = React.useState(false);
+  const [newCatName, setNewCatName] = React.useState("");
+  const [newCatIcon, setNewCatIcon] = React.useState("✨");
+  const [newCatAmt, setNewCatAmt] = React.useState(500_000);
+
+  const updateRow = (id: string, patch: Partial<CreateBudgetRow>) => {
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  };
+
+  const addCategory = () => {
+    const name = newCatName.trim();
+    if (!name) return;
+    setRows((prev) => [
+      ...prev,
+      {
+        id: "custom-" + Date.now(),
+        name,
+        icon: newCatIcon,
+        suggested: newCatAmt,
+        budget: newCatAmt,
+        enabled: true,
+        custom: true,
+      },
+    ]);
+    setNewCatName("");
+    setNewCatIcon("✨");
+    setNewCatAmt(500_000);
+    setAddingCat(false);
+  };
+
+  return (
       <div className="flex flex-col gap-2">
         {rows.map((r) => {
           const isEditing = editingId === r.id;
@@ -571,10 +520,10 @@ function StepAllocate({
                     />
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    {!r.custom && (
+                    {!r.custom && template.some((t) => t.id === r.id) && (
                       <button
                         onClick={() => {
-                          const tpl = DEFAULT_CATEGORY_TEMPLATE.find(
+                          const tpl = template.find(
                             (t) => t.id === r.id
                           );
                           if (tpl)
@@ -609,7 +558,7 @@ function StepAllocate({
             className="h-12 rounded-lg border border-dashed border-line flex items-center justify-center gap-2 text-[13px] text-fg-1 cursor-pointer hover:bg-bg-1 hover:border-brand transition-colors"
           >
             <Plus size={14} strokeWidth={1.75} />
-            Add custom category
+            {addLabel}
           </button>
         ) : (
           <div className="p-3 rounded-lg bg-bg-1 border border-line flex flex-col gap-3">
@@ -619,7 +568,7 @@ function StepAllocate({
               </div>
               <input
                 className="flex-1 h-9 px-3 rounded-sm bg-bg-2 border border-line text-[13px] text-fg-0 outline-none focus:border-brand"
-                placeholder="Category name (e.g. Tithe)"
+                placeholder={placeholder}
                 value={newCatName}
                 onChange={(e) => setNewCatName(e.target.value)}
                 autoFocus
@@ -677,37 +626,6 @@ function StepAllocate({
           </div>
         )}
       </div>
-
-      {/* Recurring toggle */}
-      <div className="flex items-center justify-between p-3.5 rounded-lg bg-bg-1 border border-line">
-        <div>
-          <div className="text-[13px] text-fg-0 font-medium">
-            Repeat every month
-          </div>
-          <div className="text-[11px] text-fg-2">
-            Auto-create the same budget for future months
-          </div>
-        </div>
-        <Toggle checked={recurring} onCheckedChange={setRecurring} />
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center gap-3 pt-4 border-t border-line">
-        <button
-          onClick={onCancel}
-          className="flex-1 h-11 rounded-sm border border-line text-[14px] text-fg-1 cursor-pointer hover:bg-bg-2 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={onSave}
-          disabled={totalAllocated <= 0}
-          className="flex-1 h-11 rounded-sm bg-brand text-brand-ink text-[14px] font-medium cursor-pointer hover:bg-brand-hi transition-colors disabled:opacity-40"
-        >
-          Save budget
-        </button>
-      </div>
-    </div>
   );
 }
 

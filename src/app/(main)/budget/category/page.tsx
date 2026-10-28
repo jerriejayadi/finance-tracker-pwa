@@ -54,11 +54,11 @@ function BudgetCategoryContent() {
   const { data: budgets, isLoading: budgetsLoading } = useGetBudgets({ monthYear: key });
   const budget = budgets?.find((b) => b.id === budgetId);
 
-  // Same rules as the budget's "spent": expenses in the month, matched by
-  // category_id (or by name for legacy rows without one)
+  // Same rules as the budget's "spent": transactions of the budget's kind in the month,
+  // matched by category_id (or by name for legacy rows without one)
   const { data: transactions = [], isLoading: txLoading } = useGetTransactions({
     filters: {
-      type: "expense",
+      type: budget?.kind ?? "expense",
       categoryIds: budget?.category_id ? [budget.category_id] : undefined,
       legacyCategory: budget && !budget.category_id ? budget.category : undefined,
       ...monthRange(y, m),
@@ -89,7 +89,9 @@ function BudgetCategoryContent() {
   const spent = transactions.reduce((sum, tx) => sum + Number(tx.amount), 0);
   const planned = Number(budget.planned_amount);
   const left = planned - spent;
-  const over = left < 0;
+  // Receiving more than expected isn't a problem, so income rows never show "over"
+  const isIncome = budget.kind === "income";
+  const over = !isIncome && left < 0;
   const pct = budgetPct(spent, planned);
 
   const now = new Date();
@@ -146,20 +148,27 @@ function BudgetCategoryContent() {
         <div className="bg-bg-3 relative mt-3 h-[6px] overflow-hidden rounded-full">
           <div
             className="h-full rounded-full transition-all duration-500"
-            style={{ width: Math.min(100, pct) + "%", background: budgetFillColor(spent, planned) }}
+            style={{
+              width: Math.min(100, pct) + "%",
+              background: isIncome ? "var(--pos)" : budgetFillColor(spent, planned),
+            }}
           />
         </div>
 
         <div className="mt-2 flex items-center justify-between gap-2 font-mono text-[12px] tabular-nums">
-          <span className={cn(over ? "text-neg" : "text-fg-1")}>
-            {over
-              ? t("overBy", { amount: fmtIDR(Math.abs(left)) })
-              : t("left", { amount: fmtIDR(left) })}
+          <span className={cn(over ? "text-neg" : isIncome && left <= 0 ? "text-pos" : "text-fg-1")}>
+            {isIncome
+              ? left <= 0
+                ? "Received"
+                : `${fmtIDR(left)} to go`
+              : over
+                ? t("overBy", { amount: fmtIDR(Math.abs(left)) })
+                : t("left", { amount: fmtIDR(left) })}
           </span>
           <span className="text-fg-2">{Math.round(pct)}%</span>
         </div>
 
-        {isCurrentMonth && !over && left > 0 && (
+        {isCurrentMonth && !isIncome && !over && left > 0 && (
           <p className="text-fg-2 mt-3 text-[12px]">
             {t("dailyLeft", { amount: fmtIDR(left / daysRemaining) })}
           </p>
@@ -170,7 +179,9 @@ function BudgetCategoryContent() {
       {transactions.length > 0 ? (
         <CategoryTransactionList transactions={transactions} onTapRow={setDetailTx} />
       ) : (
-        <p className="text-fg-2 px-5 py-10 text-center text-[13px]">{t("noSpending")}</p>
+        <p className="text-fg-2 px-5 py-10 text-center text-[13px]">
+          {isIncome ? "No income received yet" : t("noSpending")}
+        </p>
       )}
 
       {/* Drawers */}

@@ -1,11 +1,14 @@
+import type { BudgetKind } from "@/services/budgets/budgets.service";
+
 export interface BudgetCategory {
   id: string;
   name: string;
   icon: string;
   budget: number;
   spent: number;
-  /** Expense transactions this month */
+  /** Transactions of the budget's kind this month */
   count: number;
+  kind?: BudgetKind;
 }
 
 export interface BudgetCategoryTemplate {
